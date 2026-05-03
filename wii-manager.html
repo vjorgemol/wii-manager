@@ -1,0 +1,1811 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WiiFlow Manager</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0d0f14;
+    --bg2: #13161e;
+    --bg3: #1a1e28;
+    --bg4: #20253200;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8eaf0;
+    --text2: #8b92a8;
+    --text3: #555d75;
+    --accent: #5b7fff;
+    --accent2: #3d5ce0;
+    --green: #3ecf8e;
+    --red: #f26b6b;
+    --amber: #f0a040;
+    --purple: #a06cf0;
+    --card-r: 12px;
+  }
+
+  body {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; color: white;
+    flex-shrink: 0;
+  }
+
+  header h1 {
+    font-size: 16px; font-weight: 600; letter-spacing: 0.05em;
+    color: var(--text);
+  }
+  header h1 span { color: var(--text2); font-weight: 400; }
+
+  .header-right {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  /* ─── LAYOUT ─── */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: calc(100vh - 61px);
+  }
+
+  /* ─── SIDEBAR ─── */
+  aside {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 16px 0;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+
+  .sidebar-section {
+    padding: 6px 16px 2px;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-top: 8px;
+  }
+
+  .nav-btn {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 16px;
+    border: none; background: none;
+    color: var(--text2);
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    font-size: 13px;
+    border-radius: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+  .nav-btn:hover { background: var(--bg3); color: var(--text); }
+  .nav-btn.active { background: rgba(91,127,255,0.12); color: var(--accent); }
+  .nav-btn .icon { width: 16px; text-align: center; font-size: 14px; }
+
+  /* Status del dispositivo */
+  .device-status {
+    margin: auto 0 0;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+  }
+  .device-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+  .device-path {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+  }
+  .device-path input {
+    background: none; border: none; color: var(--text);
+    font-family: inherit; font-size: 12px;
+    flex: 1; outline: none; width: 0;
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .dot.off { background: var(--text3); }
+
+  /* ─── MAIN ─── */
+  main {
+    padding: 24px;
+    overflow-y: auto;
+  }
+
+  /* ─── TOOLBAR ─── */
+  .toolbar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .search-box {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 12px;
+    flex: 1; min-width: 200px;
+  }
+  .search-box input {
+    background: none; border: none; color: var(--text);
+    font-family: inherit; font-size: 13px;
+    flex: 1; outline: none;
+  }
+  .search-box input::placeholder { color: var(--text3); }
+
+  btn, .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    background: var(--bg3);
+    color: var(--text);
+    font-family: inherit; font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--bg4); border-color: var(--border2); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
+  .btn.primary:hover { background: var(--accent2); border-color: var(--accent2); }
+  .btn.danger { background: rgba(242,107,107,0.12); border-color: rgba(242,107,107,0.3); color: var(--red); }
+  .btn.danger:hover { background: rgba(242,107,107,0.2); }
+  .btn.success { background: rgba(62,207,142,0.12); border-color: rgba(62,207,142,0.3); color: var(--green); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ─── STATS BAR ─── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--card-r);
+    padding: 14px 16px;
+  }
+  .stat-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 4px; }
+  .stat-value { font-size: 22px; font-weight: 600; color: var(--text); }
+  .stat-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* ─── GAME GRID ─── */
+  .game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+  }
+
+  .game-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--card-r);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+    position: relative;
+  }
+  .game-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .game-card.selected { border-color: var(--accent); }
+
+  .game-cover {
+    width: 100%; aspect-ratio: 3/4;
+    background: var(--bg3);
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  .game-cover img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  .game-cover .no-cover {
+    font-size: 11px; color: var(--text3);
+    text-align: center; padding: 10px;
+  }
+  .game-cover .cover-id {
+    font-size: 10px; color: var(--text3);
+    position: absolute; bottom: 6px; right: 6px;
+    background: rgba(0,0,0,0.6);
+    padding: 2px 5px; border-radius: 4px;
+  }
+
+  .game-info {
+    padding: 10px 12px;
+    border-top: 1px solid var(--border);
+  }
+  .game-title {
+    font-size: 12px; font-weight: 500; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-bottom: 3px;
+  }
+  .game-meta {
+    font-size: 10px; color: var(--text3);
+    display: flex; justify-content: space-between;
+  }
+  .game-id-badge {
+    font-size: 10px; color: var(--accent);
+    font-family: monospace;
+  }
+
+  .game-select {
+    position: absolute; top: 8px; left: 8px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.15s;
+    cursor: pointer;
+  }
+  .game-card:hover .game-select { opacity: 1; }
+  .game-card.selected .game-select { opacity: 1; background: var(--accent); border-color: var(--accent); }
+
+  /* ─── LIST VIEW ─── */
+  .game-list { display: none; }
+  .game-list.active { display: block; }
+  .game-grid.active { display: grid; }
+  .game-grid.hidden { display: none; }
+
+  table {
+    width: 100%; border-collapse: collapse;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--card-r);
+    overflow: hidden;
+  }
+  th {
+    background: var(--bg3);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  th:hover { color: var(--text2); }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg3); }
+  tr.selected td { background: rgba(91,127,255,0.06); }
+
+  .td-cover {
+    width: 36px; height: 48px;
+    object-fit: cover;
+    border-radius: 4px;
+    background: var(--bg3);
+  }
+
+  /* ─── TERMINAL ─── */
+  .terminal-panel {
+    margin-top: 20px;
+    background: #0a0b0f;
+    border: 1px solid var(--border);
+    border-radius: var(--card-r);
+    overflow: hidden;
+  }
+  .term-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px; color: var(--text3);
+  }
+  .term-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .term-output {
+    padding: 12px 14px;
+    font-size: 12px;
+    color: #a8c8a8;
+    min-height: 80px;
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .term-output .cmd { color: var(--accent); }
+  .term-output .err { color: var(--red); }
+  .term-output .ok { color: var(--green); }
+  .term-output .info { color: var(--amber); }
+
+  /* ─── MODAL ─── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    padding: 24px;
+    width: min(480px, 90vw);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); margin-bottom: 6px; display: block; }
+  .form-input {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .form-select {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+  }
+
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+  /* ─── PROGRESS ─── */
+  .progress-bar {
+    height: 3px;
+    background: var(--bg3);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+
+  /* ─── TABS ─── */
+  .tabs {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .tab {
+    padding: 10px 18px;
+    border: none; background: none;
+    color: var(--text3);
+    font-family: inherit; font-size: 13px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    margin-bottom: -1px;
+  }
+  .tab:hover { color: var(--text2); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ─── BADGE ─── */
+  .badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+  }
+  .badge-wfs { background: rgba(91,127,255,0.15); color: var(--accent); }
+  .badge-iso { background: rgba(240,160,64,0.15); color: var(--amber); }
+  .badge-wbfs { background: rgba(160,108,240,0.15); color: var(--purple); }
+
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 60px 20px;
+    color: var(--text3);
+    gap: 10px;
+    text-align: center;
+  }
+  .empty-state .icon { font-size: 40px; margin-bottom: 6px; }
+
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .view-toggle {
+    display: flex; gap: 0;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2px;
+  }
+  .view-toggle button {
+    background: none; border: none;
+    color: var(--text3);
+    cursor: pointer;
+    padding: 5px 9px;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .view-toggle button.active { background: var(--bg2); color: var(--text); }
+
+  .tag { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; }
+  .tag-ok { background: rgba(62,207,142,0.15); color: var(--green); }
+  .tag-err { background: rgba(242,107,107,0.15); color: var(--red); }
+
+  /* Checkbox */
+  input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+
+  .section-head {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .section-title { font-size: 14px; font-weight: 500; }
+
+  details summary { cursor: pointer; list-style: none; color: var(--text3); font-size: 12px; }
+  details summary::-webkit-details-marker { display: none; }
+  details[open] summary { color: var(--text2); margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">W</div>
+  <div>
+    <h1>WiiFlow Manager <span>/ wit + wwt GUI</span></h1>
+  </div>
+  <div class="header-right">
+    <div id="wit-status" class="tag tag-err" title="Estado de wit">wit: no encontrado</div>
+    <div id="wwt-status" class="tag tag-err" title="Estado de wwt">wwt: no encontrado</div>
+    <button class="btn" onclick="checkTools()">↺ Verificar</button>
+  </div>
+</header>
+
+<div class="layout">
+
+<!-- SIDEBAR -->
+<aside>
+  <div class="sidebar-section">Vistas</div>
+  <button class="nav-btn active" onclick="showView('library')" id="nav-library">
+    <span class="icon">▦</span> Biblioteca
+  </button>
+  <button class="nav-btn" onclick="showView('convert')" id="nav-convert">
+    <span class="icon">⇌</span> Convertir
+  </button>
+  <button class="nav-btn" onclick="showView('verify')" id="nav-verify">
+    <span class="icon">✔</span> Verificar
+  </button>
+  <button class="nav-btn" onclick="showView('settings')" id="nav-settings">
+    <span class="icon">⚙</span> Ajustes
+  </button>
+
+  <div class="sidebar-section">Filtros</div>
+  <button class="nav-btn" onclick="filterGames('all')" id="filter-all">
+    <span class="icon">◈</span> Todos los juegos
+  </button>
+  <button class="nav-btn" onclick="filterGames('wfs')" id="filter-wfs">
+    <span class="icon">◉</span> Formato WFS
+  </button>
+  <button class="nav-btn" onclick="filterGames('iso')" id="filter-iso">
+    <span class="icon">◎</span> Formato ISO
+  </button>
+  <button class="nav-btn" onclick="filterGames('wbfs')" id="filter-wbfs">
+    <span class="icon">◌</span> Formato WBFS
+  </button>
+
+  <div class="device-status">
+    <div class="device-label">Ruta WFS / USB</div>
+    <div class="device-path">
+      <div class="dot off" id="device-dot"></div>
+      <input type="text" id="device-path" placeholder="/media/usb/wii" value="/media/usb/wii">
+    </div>
+    <div style="margin-top:8px">
+      <button class="btn" style="width:100%; justify-content:center" onclick="scanDevice()">
+        Explorar dispositivo
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main>
+
+  <!-- ══ LIBRARY VIEW ══ -->
+  <div id="view-library">
+
+    <!-- Stats bar -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">Juegos</div>
+        <div class="stat-value" id="stat-games">0</div>
+        <div class="stat-sub">en el dispositivo</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Espacio usado</div>
+        <div class="stat-value" id="stat-size">— GB</div>
+        <div class="stat-sub" id="stat-free">— GB libres</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Seleccionados</div>
+        <div class="stat-value" id="stat-sel">0</div>
+        <div class="stat-sub">juegos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Carátulas</div>
+        <div class="stat-value" id="stat-covers">0</div>
+        <div class="stat-sub">cargadas</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-box">
+        <span style="color:var(--text3);font-size:14px">⌕</span>
+        <input type="text" id="search" placeholder="Buscar juego, ID…" oninput="filterSearch()">
+      </div>
+      <button class="btn primary" onclick="openAddModal()">+ Añadir juego</button>
+      <button class="btn danger" id="btn-delete" onclick="deleteSelected()" disabled>⌦ Eliminar</button>
+      <button class="btn" onclick="loadCovers()">⊡ Carátulas</button>
+      <button class="btn" onclick="refreshLibrary()">↺</button>
+      <div class="view-toggle">
+        <button class="active" id="vt-grid" onclick="setView('grid')" title="Cuadrícula">⊞</button>
+        <button id="vt-list" onclick="setView('list')" title="Lista">≡</button>
+      </div>
+    </div>
+
+    <!-- Grid view -->
+    <div class="game-grid active" id="game-grid"></div>
+
+    <!-- List view -->
+    <div class="game-list" id="game-list">
+      <table>
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="sel-all" onchange="toggleAll()"></th>
+            <th></th>
+            <th onclick="sortBy('title')">Título ↕</th>
+            <th onclick="sortBy('id')">ID</th>
+            <th onclick="sortBy('size')">Tamaño ↕</th>
+            <th>Formato</th>
+            <th>Región</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="game-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- Terminal -->
+    <div class="terminal-panel">
+      <div class="term-header">
+        <div class="term-dot" style="background:#f26b6b"></div>
+        <div class="term-dot" style="background:#f0a040"></div>
+        <div class="term-dot" style="background:#3ecf8e"></div>
+        <span style="margin-left:8px">Terminal — salida de comandos</span>
+        <button style="margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;" onclick="clearTerm()">limpiar</button>
+      </div>
+      <div class="term-output" id="term">
+<span class="info">WiiFlow Manager — GUI para wit/wwt</span>
+<span class="info">Linux · Wii Game Manager</span>
+
+Bienvenido. Configura la ruta del WBFS y pulsa "Explorar dispositivo" para empezar.
+
+Sintaxis correcta de wwt:
+  <span class="cmd">wwt LIST -p /dev/sdX</span>          (partición de bloque)
+  <span class="cmd">wwt LIST -p /ruta/archivo.wbfs</span>  (archivo WBFS)
+  <span class="cmd">wwt ADD  -p /dev/sdX juego.iso</span>
+  <span class="cmd">wwt --auto LIST</span>                  (detección automática)
+
+Para instalar wit/wwt: https://wit.wiimm.de/download.html
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CONVERT VIEW ══ -->
+  <div id="view-convert" style="display:none">
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('tab-iso2wfs','convert')">ISO → WFS</button>
+      <button class="tab" onclick="showTab('tab-wfs2iso','convert')">WFS → ISO</button>
+      <button class="tab" onclick="showTab('tab-batch','convert')">Lote</button>
+    </div>
+
+    <div class="tab-content active" id="tab-iso2wfs">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-r);padding:20px;max-width:540px">
+        <h3 style="font-size:13px;font-weight:500;margin-bottom:16px;color:var(--text2)">Convertir ISO → WBFS/WFS</h3>
+        <div class="form-group">
+          <label class="form-label">Archivo ISO origen</label>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" id="src-iso" placeholder="/ruta/al/juego.iso">
+            <button class="btn" onclick="browseFile('src-iso')">Examinar</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Destino (directorio WFS)</label>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" id="dst-wfs" placeholder="/media/usb/wii">
+            <button class="btn" onclick="browseDir('dst-wfs')">Examinar</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Opciones</label>
+          <select class="form-select" id="conv-opts">
+            <option value="">Sin compresión</option>
+            <option value="--preserve-scrub">Preserve scrub</option>
+            <option value="--split">Split en varios archivos</option>
+          </select>
+        </div>
+        <div id="conv-progress" style="display:none">
+          <div class="progress-bar"><div class="progress-fill" id="conv-fill" style="width:0%"></div></div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px" id="conv-status">Preparando…</div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px">
+          <button class="btn primary" onclick="convertIsoToWfs()">Convertir</button>
+          <button class="btn" onclick="previewCmd('iso2wfs')">Ver comando</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-wfs2iso">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-r);padding:20px;max-width:540px">
+        <h3 style="font-size:13px;font-weight:500;margin-bottom:16px;color:var(--text2)">Convertir WFS → ISO</h3>
+        <div class="form-group">
+          <label class="form-label">Juego WFS origen (ID o ruta)</label>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" id="src-wfs" placeholder="RMCP01 o /media/usb/wii/RMCP01">
+            <button class="btn" onclick="pickFromLibrary('src-wfs')">Elegir</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Archivo ISO destino</label>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" id="dst-iso" placeholder="/home/usuario/exports/juego.iso">
+            <button class="btn" onclick="browseFile('dst-iso')">Examinar</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Opciones</label>
+          <select class="form-select" id="conv-opts2">
+            <option value="">ISO estándar</option>
+            <option value="--wbfs">WBFS en lugar de ISO</option>
+            <option value="--split">ISO partida (FAT32)</option>
+          </select>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px">
+          <button class="btn primary" onclick="convertWfsToIso()">Convertir</button>
+          <button class="btn" onclick="previewCmd('wfs2iso')">Ver comando</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-batch">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-r);padding:20px;max-width:600px">
+        <h3 style="font-size:13px;font-weight:500;margin-bottom:16px;color:var(--text2)">Conversión en lote</h3>
+        <p style="color:var(--text3);font-size:12px;margin-bottom:16px">Convierte múltiples ISOs a WFS de golpe, o exporta todos los juegos seleccionados.</p>
+        <div class="form-group">
+          <label class="form-label">Directorio con ISOs</label>
+          <input class="form-input" id="batch-src" placeholder="/home/usuario/isos">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Destino WFS</label>
+          <input class="form-input" id="batch-dst" placeholder="/media/usb/wii">
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:11px;color:var(--text3);font-family:monospace;margin-bottom:14px" id="batch-cmd">
+          wwt ADD -p [DST] [SRC]/*.iso
+        </div>
+        <button class="btn primary" onclick="runBatch()">Ejecutar lote</button>
+      </div>
+    </div>
+
+    <div class="terminal-panel" style="margin-top:20px">
+      <div class="term-header">
+        <div class="term-dot" style="background:#f26b6b"></div>
+        <div class="term-dot" style="background:#f0a040"></div>
+        <div class="term-dot" style="background:#3ecf8e"></div>
+        <span style="margin-left:8px">Salida de conversión</span>
+      </div>
+      <div class="term-output" id="term-conv">Listo para convertir.</div>
+    </div>
+  </div>
+
+  <!-- ══ VERIFY VIEW ══ -->
+  <div id="view-verify" style="display:none">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-r);padding:20px;max-width:540px;margin-bottom:20px">
+      <h3 style="font-size:13px;font-weight:500;margin-bottom:16px;color:var(--text2)">Verificar integridad</h3>
+      <div class="form-group">
+        <label class="form-label">Ruta o ID de juego</label>
+        <input class="form-input" id="verify-path" placeholder="RMCP01 o /ruta/al/juego.iso">
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn primary" onclick="verifyGame()">Verificar</button>
+        <button class="btn" onclick="verifyAll()">Verificar todos</button>
+      </div>
+    </div>
+
+    <div id="verify-results"></div>
+
+    <div class="terminal-panel" style="margin-top:20px">
+      <div class="term-header">
+        <div class="term-dot" style="background:#f26b6b"></div>
+        <div class="term-dot" style="background:#f0a040"></div>
+        <div class="term-dot" style="background:#3ecf8e"></div>
+        <span style="margin-left:8px">Salida de verificación</span>
+      </div>
+      <div class="term-output" id="term-verify">Esperando…</div>
+    </div>
+  </div>
+
+  <!-- ══ SETTINGS VIEW ══ -->
+  <div id="view-settings" style="display:none">
+    <div style="max-width:520px;display:flex;flex-direction:column;gap:16px">
+
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-r);padding:20px">
+        <h3 style="font-size:13px;font-weight:500;margin-bottom:16px;color:var(--text2)">Rutas de herramientas</h3>
+        <div class="form-group">
+          <label class="form-label">Ruta de wit</label>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" id="wit-path" placeholder="/usr/bin/wit" value="/usr/bin/wit">
+            <button class="btn" onclick="detectTool('wit')">Detectar</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ruta de wwt</label>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" id="wwt-path" placeholder="/usr/bin/wwt" value="/usr/bin/wwt">
+            <button class="btn" onclick="detectTool('wwt')">Detectar</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ruta WFS / USB</label>
+          <input class="form-input" id="wfs-path" placeholder="/media/usb/wii" value="/media/usb/wii">
+        </div>
+        <button class="btn primary" onclick="saveSettings()">Guardar configuración</button>
+      </div>
+
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-r);padding:20px">
+        <h3 style="font-size:13px;font-weight:500;margin-bottom:16px;color:var(--text2)">Carátulas (GameTDB)</h3>
+        <div class="form-group">
+          <label class="form-label">Región preferida</label>
+          <select class="form-select" id="cover-region">
+            <option value="ES">España (ES)</option>
+            <option value="EN">English (EN)</option>
+            <option value="DE">Deutschland (DE)</option>
+            <option value="FR">France (FR)</option>
+            <option value="IT">Italia (IT)</option>
+            <option value="PT">Portugal (PT)</option>
+            <option value="US">USA (US)</option>
+            <option value="JA">Japan (JA)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo de carátula</label>
+          <select class="form-select" id="cover-type">
+            <option value="cover3D">3D Cover</option>
+            <option value="cover">Cover plano</option>
+            <option value="disc">Disco</option>
+            <option value="coverfull">Cover completo</option>
+          </select>
+        </div>
+        <div style="font-size:11px;color:var(--text3);background:var(--bg3);border-radius:8px;padding:10px;font-family:monospace;margin-bottom:12px">
+          https://art.gametdb.com/wii/[tipo]/[región]/[ID].png
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text2)">
+          <input type="checkbox" id="cover-cache" checked> Cachear carátulas localmente
+        </label>
+      </div>
+
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-r);padding:20px">
+        <h3 style="font-size:13px;font-weight:500;margin-bottom:12px;color:var(--text2)">Scripts de integración</h3>
+        <p style="color:var(--text3);font-size:12px;margin-bottom:14px">
+          Esta GUI genera y ejecuta comandos <code style="color:var(--accent)">wit</code> / <code style="color:var(--accent)">wwt</code> vía
+          <code style="color:var(--amber)">zenity</code> o directamente en bash. Para integrarlo con tu escritorio, usa el lanzador incluido.
+        </p>
+        <button class="btn" onclick="generateLauncher()">⤓ Generar lanzador .desktop</button>
+        <button class="btn" onclick="generateScript()" style="margin-left:8px">⤓ Script bash</button>
+      </div>
+
+      <details style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--card-r);padding:16px">
+        <summary>Referencia de comandos wit / wwt</summary>
+        <div style="margin-top:12px;font-size:12px;color:var(--text2);line-height:2">
+          <div><code style="color:var(--accent)">wwt LIST -p /ruta/wbfs</code> — listar juegos en WBFS</div>
+          <div><code style="color:var(--accent)">wwt ADD -p /ruta/wbfs juego.iso</code> — añadir ISO al WBFS</div>
+          <div><code style="color:var(--accent)">wwt EXTRACT -p /ruta/wbfs ID --dest /dst/</code> — extraer a ISO</div>
+          <div><code style="color:var(--accent)">wwt REMOVE -p /ruta/wbfs ID</code> — eliminar juego</div>
+          <div><code style="color:var(--accent)">wwt VERIFY -p /ruta/wbfs</code> — verificar todos los juegos</div>
+          <div><code style="color:var(--accent)">wit COPY src.iso dst.wbfs</code> — copiar / convertir</div>
+          <div><code style="color:var(--accent)">wit VERIFY juego.iso</code> — verificar integridad</div>
+          <div><code style="color:var(--accent)">wit LIST juego.iso</code> — info del juego</div>
+          <div><code style="color:var(--accent)">wwt --auto LIST</code> — detectar WBFS automáticamente</div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- ══ MODAL: AÑADIR JUEGO ══ -->
+<div class="modal-overlay" id="modal-add">
+  <div class="modal">
+    <h2>Añadir juego al WFS</h2>
+    <div class="form-group">
+      <label class="form-label">Archivo origen (ISO / WBFS / WFS)</label>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" id="add-src" placeholder="/ruta/al/juego.iso">
+        <button class="btn" onclick="browseFile('add-src')">…</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Destino WFS</label>
+      <input class="form-input" id="add-dst" placeholder="/media/usb/wii">
+    </div>
+    <div style="background:var(--bg3);border-radius:8px;padding:10px;font-size:11px;color:var(--text3);font-family:monospace;margin-bottom:8px" id="add-preview">
+      wwt ADD --wfs [dst] [src]
+    </div>
+    <div id="add-progress" style="display:none">
+      <div class="progress-bar"><div class="progress-fill" id="add-fill" style="width:0%"></div></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px" id="add-status">Preparando…</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('modal-add')">Cancelar</button>
+      <button class="btn primary" onclick="addGame()">Añadir</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: DETALLE JUEGO ══ -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal" style="width:min(560px,90vw)">
+    <div style="display:flex;gap:20px;align-items:flex-start">
+      <img id="detail-cover" src="" style="width:120px;border-radius:8px;background:var(--bg3)" onerror="this.style.display='none'">
+      <div style="flex:1">
+        <h2 id="detail-title" style="margin-bottom:4px">—</h2>
+        <div style="color:var(--text3);font-size:12px;margin-bottom:14px" id="detail-meta">—</div>
+        <table style="font-size:12px;background:none;border:none">
+          <tr><td style="color:var(--text3);padding:3px 12px 3px 0;border:none">ID</td><td style="color:var(--accent);border:none" id="detail-id">—</td></tr>
+          <tr><td style="color:var(--text3);padding:3px 12px 3px 0;border:none">Tamaño</td><td style="border:none" id="detail-size">—</td></tr>
+          <tr><td style="color:var(--text3);padding:3px 12px 3px 0;border:none">Formato</td><td style="border:none" id="detail-fmt">—</td></tr>
+          <tr><td style="color:var(--text3);padding:3px 12px 3px 0;border:none">Región</td><td style="border:none" id="detail-region">—</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('modal-detail')">Cerrar</button>
+      <button class="btn" onclick="extractSelected()">Exportar ISO</button>
+      <button class="btn danger" onclick="deleteGame(window._detailId)">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  ESTADO
+// ═══════════════════════════════════════════════
+const API = 'http://localhost:8765';
+let games = [], filtered = [], selected = new Set();
+let viewMode = 'grid', currentView = 'library';
+let sortCol = 'title', sortDir = 1, activeFilter = 'all';
+let coversLoaded = 0;
+let settings = {
+  witPath: '/usr/bin/wit', wwtPath: '/usr/bin/wwt',
+  wfsPath: '/dev/sdb1', coverRegion: 'ES', coverType: 'cover3D'
+};
+
+// ═══════════════════════════════════════════════
+//  API: llamadas al backend
+// ═══════════════════════════════════════════════
+async function apiGet(endpoint, params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const url = `${API}${endpoint}${qs ? '?' + qs : ''}`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+async function apiPost(endpoint, body = {}) {
+  const r = await fetch(`${API}${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+// Muestra stdout+stderr en el terminal indicado y devuelve el resultado
+function showResult(data, termFn) {
+  if (data.cmd)    termFn(`<span class="cmd">$ ${esc(data.cmd)}</span>`);
+  if (data.stdout) termFn(esc(data.stdout.trim()));
+  if (data.stderr) termFn(`<span class="err">${esc(data.stderr.trim())}</span>`);
+  return data;
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ═══════════════════════════════════════════════
+//  INICIALIZACIÓN
+// ═══════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', async () => {
+  loadSettings();
+  await checkTools();
+  // No cargamos juegos de muestra; la biblioteca empieza vacía
+  // hasta que el usuario pulse "Explorar dispositivo"
+  renderGames();
+  updateStats();
+});
+
+// ═══════════════════════════════════════════════
+//  VIEWS / TABS
+// ═══════════════════════════════════════════════
+function showView(v) {
+  currentView = v;
+  ['library','convert','verify','settings'].forEach(id => {
+    document.getElementById('view-'+id).style.display = id===v ? '' : 'none';
+    document.getElementById('nav-'+id)?.classList.toggle('active', id===v);
+  });
+}
+
+function showTab(tabId, group) {
+  document.querySelectorAll(`#view-${group} .tab`).forEach(t =>
+    t.classList.toggle('active', t.getAttribute('onclick')?.includes(tabId)));
+  document.querySelectorAll(`#view-${group} .tab-content`).forEach(c =>
+    c.classList.toggle('active', c.id === tabId));
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════
+function renderGames() { renderGrid(); renderList(); updateStats(); }
+
+function renderGrid() {
+  const grid = document.getElementById('game-grid');
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="icon">◎</div>
+      <div>Sin juegos. Introduce la ruta del WBFS y pulsa "Explorar dispositivo".</div>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map(g => `
+    <div class="game-card ${selected.has(g.id)?'selected':''}"
+         onclick="toggleSelect(event,'${g.id}')" ondblclick="showDetail('${g.id}')">
+      <div class="game-select" onclick="toggleSelect(event,'${g.id}',true)">
+        ${selected.has(g.id)?'✓':''}
+      </div>
+      <div class="game-cover">
+        <img id="cover-${g.id}" src="" alt="" style="display:none"
+             onerror="this.style.display='none'"
+             onload="this.style.display='block';document.getElementById('nocover-${g.id}').style.display='none';countCovers()">
+        <div class="no-cover" id="nocover-${g.id}">
+          <div style="font-size:22px;margin-bottom:4px">⊡</div>${g.id}
+        </div>
+        <div class="cover-id">${g.id}</div>
+      </div>
+      <div class="game-info">
+        <div class="game-title" title="${esc(g.title)}">${esc(g.title)}</div>
+        <div class="game-meta">
+          <span class="game-id-badge">${g.id}</span>
+          <span class="badge badge-wbfs">WBFS</span>
+        </div>
+        <div class="game-meta" style="margin-top:3px">
+          <span>${g.size ? g.size.toFixed(2)+' GB' : '—'}</span>
+          <span>${g.region}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderList() {
+  document.getElementById('game-tbody').innerHTML = filtered.map(g => `
+    <tr class="${selected.has(g.id)?'selected':''}"
+        onclick="toggleSelect(event,'${g.id}')" ondblclick="showDetail('${g.id}')">
+      <td><input type="checkbox" ${selected.has(g.id)?'checked':''} onclick="event.stopPropagation()"></td>
+      <td><img class="td-cover" id="lcover-${g.id}" src="" alt="" onerror="this.src=''"></td>
+      <td style="font-weight:500">${esc(g.title)}</td>
+      <td style="font-family:monospace;color:var(--accent)">${g.id}</td>
+      <td>${g.size ? g.size.toFixed(2)+' GB' : '—'}</td>
+      <td><span class="badge badge-wbfs">WBFS</span></td>
+      <td>${g.region}</td>
+      <td>
+        <button class="btn" style="padding:4px 8px;font-size:11px"
+                onclick="showDetail('${g.id}');event.stopPropagation()">Info</button>
+        <button class="btn danger" style="padding:4px 8px;font-size:11px"
+                onclick="deleteGame('${g.id}');event.stopPropagation()">⌦</button>
+      </td>
+    </tr>`).join('');
+}
+
+function updateStats(usedGb, freeGb) {
+  document.getElementById('stat-games').textContent = games.length;
+  if (usedGb !== undefined) {
+    document.getElementById('stat-size').textContent = usedGb.toFixed(1)+' GB';
+    document.getElementById('stat-free').textContent = freeGb.toFixed(1)+' GB libres';
+  } else {
+    const total = games.reduce((a,g) => a+(g.size||0), 0);
+    document.getElementById('stat-size').textContent = total.toFixed(1)+' GB';
+    document.getElementById('stat-free').textContent = '—';
+  }
+  document.getElementById('stat-sel').textContent = selected.size;
+  document.getElementById('stat-covers').textContent = coversLoaded;
+  document.getElementById('btn-delete').disabled = selected.size === 0;
+}
+
+function countCovers() {
+  coversLoaded = document.querySelectorAll('[id^="cover-"][style*="block"]').length;
+  document.getElementById('stat-covers').textContent = coversLoaded;
+}
+
+// ═══════════════════════════════════════════════
+//  SELECCIÓN
+// ═══════════════════════════════════════════════
+function toggleSelect(e, id, force) {
+  if (e && !force && e.target.tagName==='BUTTON') return;
+  selected.has(id) ? selected.delete(id) : selected.add(id);
+  renderGames();
+}
+
+function toggleAll() {
+  const cb = document.getElementById('sel-all');
+  cb.checked ? filtered.forEach(g => selected.add(g.id)) : selected.clear();
+  renderGames();
+}
+
+// ═══════════════════════════════════════════════
+//  BÚSQUEDA / FILTROS / ORDEN
+// ═══════════════════════════════════════════════
+function filterGames(fmt) {
+  activeFilter = fmt;
+  ['all','wfs','iso','wbfs'].forEach(f =>
+    document.getElementById('filter-'+f)?.classList.toggle('active', f===fmt));
+  applyFilters();
+}
+
+function filterSearch() { applyFilters(); }
+
+function applyFilters() {
+  const q = document.getElementById('search').value.toLowerCase();
+  filtered = games.filter(g => {
+    const matchQ = !q || g.title.toLowerCase().includes(q) || g.id.toLowerCase().includes(q);
+    return matchQ; // todos son WBFS desde wwt, el filtro fmt es informativo
+  });
+  filtered.sort((a,b) => {
+    const av = a[sortCol]??'', bv = b[sortCol]??'';
+    return typeof av==='string' ? av.localeCompare(bv)*sortDir : (av-bv)*sortDir;
+  });
+  renderGames();
+}
+
+function sortBy(col) {
+  sortDir = sortCol===col ? sortDir*-1 : 1;
+  sortCol = col;
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════════
+//  VISTAS
+// ═══════════════════════════════════════════════
+function setView(v) {
+  viewMode = v;
+  document.getElementById('vt-grid').classList.toggle('active', v==='grid');
+  document.getElementById('vt-list').classList.toggle('active', v==='list');
+  document.getElementById('game-grid').className = 'game-grid'+(v==='grid'?' active':' hidden');
+  document.getElementById('game-list').className = 'game-list'+(v==='list'?' active':'');
+}
+
+// ═══════════════════════════════════════════════
+//  CARÁTULAS con fallback región + tipo
+// ═══════════════════════════════════════════════
+
+// Orden de fallback de regiones y tipos
+const COVER_REGIONS = ['ES','EN','FR','DE','IT','PT','AU','US','JA','KO'];
+const COVER_TYPES   = ['cover3D','cover','coverfull','disc'];
+
+// Caché en memoria: id → url que funcionó
+const coverCache = {};
+
+/**
+ * Intenta cargar una imagen probando combinaciones de región y tipo en orden.
+ * Devuelve la primera URL que responde con imagen, o null si ninguna funciona.
+ */
+function tryLoadCover(gameId, regions, types) {
+  return new Promise(resolve => {
+    const combos = [];
+    // Primero todas las regiones con el tipo preferido, luego las demás
+    for (const type of types)
+      for (const region of regions)
+        combos.push({ type, region });
+
+    let i = 0;
+    function next() {
+      if (i >= combos.length) { resolve(null); return; }
+      const { type, region } = combos[i++];
+      const url = `https://art.gametdb.com/wii/${type}/${region}/${gameId}.png`;
+      const img = new Image();
+      img.onload  = () => resolve(url);   // encontrada
+      img.onerror = next;                 // probar siguiente
+      img.src = url;
+    }
+    next();
+  });
+}
+
+async function loadCovers() {
+  const prefRegion = document.getElementById('cover-region')?.value || settings.coverRegion;
+  const prefType   = document.getElementById('cover-type')?.value   || settings.coverType;
+
+  // Construir lista de regiones con la preferida primera
+  const regions = [prefRegion, ...COVER_REGIONS.filter(r => r !== prefRegion)];
+  // Construir lista de tipos con el preferido primero
+  const types   = [prefType,   ...COVER_TYPES.filter(t => t !== prefType)];
+
+  coversLoaded = 0;
+  term(`<span class="cmd">Cargando carátulas con fallback automático (${prefType}/${prefRegion}→…)…</span>`);
+
+  // Lanzar todas en paralelo con un límite de concurrencia de 6
+  const queue = [...filtered];
+  let ok = 0, miss = 0;
+
+  async function worker() {
+    while (queue.length) {
+      const g = queue.shift();
+
+      // Si ya está cacheada, aplicar directamente
+      if (coverCache[g.id]) {
+        applyCover(g.id, coverCache[g.id]);
+        ok++;
+        continue;
+      }
+
+      const url = await tryLoadCover(g.id, regions, types);
+      if (url) {
+        coverCache[g.id] = url;
+        applyCover(g.id, url);
+        ok++;
+      } else {
+        miss++;
+      }
+    }
+  }
+
+  // 6 workers en paralelo
+  await Promise.all(Array.from({length: 6}, worker));
+
+  term(`<span class="ok">✓ Carátulas encontradas: ${ok} — Sin carátula: ${miss}</span>`);
+}
+
+function applyCover(gameId, url) {
+  const img     = document.getElementById('cover-'  + gameId);
+  const nocover = document.getElementById('nocover-'+ gameId);
+  const limg    = document.getElementById('lcover-' + gameId);
+
+  if (img) {
+    img.src = url;
+    img.style.display = 'block';
+    if (nocover) nocover.style.display = 'none';
+    coversLoaded++;
+    document.getElementById('stat-covers').textContent = coversLoaded;
+  }
+  if (limg) limg.src = url;
+}
+
+// ═══════════════════════════════════════════════
+//  ESCANEAR DISPOSITIVO (REAL)
+// ═══════════════════════════════════════════════
+async function scanDevice() {
+  const path = document.getElementById('device-path').value.trim();
+  // Si no hay ruta, el servidor usará --auto
+  settings.wfsPath = path;
+  document.getElementById('device-dot').className = 'dot off';
+  term(`<span class="info">Explorando ${path || '(detección automática --auto)'}…</span>`);
+
+  // Deshabilitar botón mientras carga
+  const btn = document.querySelector('[onclick="scanDevice()"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Explorando…'; }
+
+  try {
+    const data = await apiGet('/api/list', {
+      part: path,
+      wwt:  settings.wwtPath
+    });
+
+    showResult(data, term);
+
+    if (data.space_raw) {
+      term(`<span class="info">── wwt SPACE ──\n${esc(data.space_raw)}</span>`);
+    }
+
+    if (data.error && !data.games?.length) {
+      term(`<span class="err">✗ Error: ${esc(data.error)}</span>`);
+      document.getElementById('device-dot').className = 'dot off';
+      return;
+    }
+
+    games    = data.games || [];
+    filtered = [...games];
+    selected.clear();
+    applyFilters();
+    updateStats(data.used_gb, data.free_gb);
+    document.getElementById('device-dot').className = 'dot';
+    const label = path || '(auto)';
+    term(`<span class="ok">✓ ${games.length} juego(s) en ${label} · usado: ${data.used_gb} GB · libre: ${data.free_gb} GB</span>`);
+
+    // Actualizar también el campo de ajustes
+    const wfsEl = document.getElementById('wfs-path');
+    if (wfsEl) wfsEl.value = path;
+
+  } catch(e) {
+    term(`<span class="err">✗ No se pudo conectar con el servidor: ${esc(e.message)}</span>`);
+    term(`<span class="info">¿Está corriendo wii-manager-server.py?</span>`);
+    document.getElementById('device-dot').className = 'dot off';
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Explorar dispositivo'; }
+  }
+}
+
+function refreshLibrary() { scanDevice(); }
+
+// ═══════════════════════════════════════════════
+//  AÑADIR JUEGO (REAL)
+// ═══════════════════════════════════════════════
+function openAddModal() {
+  document.getElementById('add-dst').value = settings.wfsPath;
+  updateAddPreview();
+  openModal('modal-add');
+}
+
+document.addEventListener('input', e => {
+  if (e.target.id==='add-src'||e.target.id==='add-dst') updateAddPreview();
+});
+
+function updateAddPreview() {
+  const src = document.getElementById('add-src')?.value || '[src]';
+  const dst = document.getElementById('add-dst')?.value || '[dst]';
+  const el  = document.getElementById('add-preview');
+  if (el) el.textContent = `${settings.wwtPath} ADD -p "${dst}" "${src}"`;
+}
+
+async function addGame() {
+  const src  = document.getElementById('add-src').value.trim();
+  const dst  = document.getElementById('add-dst').value.trim();
+  if (!src) { alert('Especifica el archivo ISO origen'); return; }
+  if (!dst) { alert('Especifica la partición WBFS destino'); return; }
+
+  showProgress('add', 2, 'Enviando al servidor…');
+  document.querySelector('[onclick="addGame()"]').disabled = true;
+
+  try {
+    // wwt ADD puede tardar varios minutos; el servidor tiene timeout=600s
+    // Mientras tanto mostramos una barra de progreso animada
+    let fakePct = 2;
+    const fakeIv = setInterval(() => {
+      fakePct = Math.min(fakePct + 1, 92);
+      showProgress('add', fakePct, `Copiando… ${fakePct}%`);
+    }, 2000);
+
+    const data = await apiPost('/api/add', {
+      part: dst, src, wwt: settings.wwtPath
+    });
+    clearInterval(fakeIv);
+    showProgress('add', 100, data.rc===0 ? 'Completado' : 'Error');
+    showResult(data, term);
+
+    if (data.rc === 0) {
+      term(`<span class="ok">✓ Juego añadido. Recargando biblioteca…</span>`);
+      closeModal('modal-add');
+      await scanDevice();
+    } else {
+      term(`<span class="err">✗ wwt devolvió código ${data.rc}</span>`);
+    }
+  } catch(e) {
+    term(`<span class="err">✗ ${esc(e.message)}</span>`);
+    showProgress('add', 0, 'Error de conexión');
+  } finally {
+    document.querySelector('[onclick="addGame()"]').disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  ELIMINAR (REAL)
+// ═══════════════════════════════════════════════
+async function deleteSelected() {
+  if (!selected.size) return;
+  const ids   = [...selected];
+  const names = ids.map(id => games.find(g=>g.id===id)?.title || id).join('\n');
+  if (!confirm(`¿Eliminar ${ids.length} juego(s)?\n\n${names}`)) return;
+
+  for (const id of ids) {
+    term(`<span class="info">Eliminando ${id}…</span>`);
+    try {
+      const data = await apiPost('/api/remove', {
+        part: settings.wfsPath, id, wwt: settings.wwtPath
+      });
+      showResult(data, term);
+      if (data.rc === 0) {
+        term(`<span class="ok">✓ ${id} eliminado</span>`);
+      } else {
+        term(`<span class="err">✗ Error al eliminar ${id} (código ${data.rc})</span>`);
+      }
+    } catch(e) {
+      term(`<span class="err">✗ ${esc(e.message)}</span>`);
+    }
+  }
+  selected.clear();
+  await scanDevice();
+}
+
+async function deleteGame(id) {
+  const g = games.find(x=>x.id===id);
+  if (!confirm(`¿Eliminar "${g?.title || id}"?`)) return;
+  closeModal('modal-detail');
+  term(`<span class="info">Eliminando ${id}…</span>`);
+  try {
+    const data = await apiPost('/api/remove', {
+      part: settings.wfsPath, id, wwt: settings.wwtPath
+    });
+    showResult(data, term);
+    if (data.rc === 0) {
+      term(`<span class="ok">✓ ${id} eliminado</span>`);
+      await scanDevice();
+    } else {
+      term(`<span class="err">✗ Error (código ${data.rc})</span>`);
+    }
+  } catch(e) {
+    term(`<span class="err">✗ ${esc(e.message)}</span>`);
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  DETALLE
+// ═══════════════════════════════════════════════
+window._detailId = null;
+function showDetail(id) {
+  const g = games.find(x=>x.id===id);
+  if (!g) return;
+  window._detailId = id;
+  document.getElementById('detail-title').textContent  = g.title;
+  document.getElementById('detail-meta').textContent   = `Wii · ${g.region}`;
+  document.getElementById('detail-id').textContent     = g.id;
+  document.getElementById('detail-size').textContent   = g.size ? g.size.toFixed(2)+' GB' : '—';
+  document.getElementById('detail-fmt').innerHTML      = `<span class="badge badge-wbfs">WBFS</span>`;
+  document.getElementById('detail-region').textContent = g.region;
+  const cover = document.getElementById('detail-cover');
+  cover.style.display = 'none';
+  if (coverCache[g.id]) {
+    cover.src = coverCache[g.id];
+    cover.style.display = '';
+  } else {
+    const regions = [settings.coverRegion, ...COVER_REGIONS.filter(r => r !== settings.coverRegion)];
+    const types   = [settings.coverType,   ...COVER_TYPES.filter(t => t !== settings.coverType)];
+    tryLoadCover(g.id, regions, types).then(url => {
+      if (url) { coverCache[g.id] = url; cover.src = url; cover.style.display = ''; }
+    });
+  }
+  openModal('modal-detail');
+}
+
+// ═══════════════════════════════════════════════
+//  EXTRAER A ISO (REAL)
+// ═══════════════════════════════════════════════
+async function extractSelected() {
+  const id = window._detailId;
+  if (!id) return;
+  const g   = games.find(x=>x.id===id);
+  const dst = prompt(`Directorio destino para ${id}.iso:`, `/tmp/`);
+  if (!dst) return;
+  closeModal('modal-detail');
+  term(`<span class="info">Extrayendo ${g?.title || id} → ${dst}…</span>`);
+  try {
+    const data = await apiPost('/api/extract', {
+      part: settings.wfsPath, id, dest: dst, wwt: settings.wwtPath
+    });
+    showResult(data, term);
+    if (data.rc === 0)
+      term(`<span class="ok">✓ Extracción completada en ${dst}</span>`);
+    else
+      term(`<span class="err">✗ Error al extraer (código ${data.rc})</span>`);
+  } catch(e) {
+    term(`<span class="err">✗ ${esc(e.message)}</span>`);
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  CONVERSIÓN (REAL)
+// ═══════════════════════════════════════════════
+async function convertIsoToWfs() {
+  const src  = document.getElementById('src-iso').value.trim();
+  const dst  = document.getElementById('dst-wfs').value.trim();
+  const opts = document.getElementById('conv-opts').value;
+  if (!src||!dst) { alert('Rellena origen y destino'); return; }
+
+  showProgress('conv', 2, 'Enviando…');
+  termConv(`<span class="info">Añadiendo ISO a WBFS, puede tardar varios minutos…</span>`);
+
+  let fakePct = 2;
+  const fakeIv = setInterval(() => {
+    fakePct = Math.min(fakePct+1, 92);
+    showProgress('conv', fakePct, `Copiando… ${fakePct}%`);
+  }, 2000);
+
+  try {
+    const data = await apiPost('/api/add', {
+      part: dst, src, opts, wwt: settings.wwtPath
+    });
+    clearInterval(fakeIv);
+    showProgress('conv', 100, data.rc===0 ? 'Completado' : 'Error');
+    showResult(data, termConv);
+    if (data.rc === 0) termConv(`<span class="ok">✓ ISO añadida correctamente</span>`);
+    else               termConv(`<span class="err">✗ Código de error: ${data.rc}</span>`);
+  } catch(e) {
+    clearInterval(fakeIv);
+    termConv(`<span class="err">✗ ${esc(e.message)}</span>`);
+  }
+}
+
+async function convertWfsToIso() {
+  const id   = document.getElementById('src-wfs').value.trim();
+  const dst  = document.getElementById('dst-iso').value.trim();
+  const opts = document.getElementById('conv-opts2').value;
+  if (!id||!dst) { alert('Rellena origen y destino'); return; }
+
+  showProgress('conv', 2, 'Extrayendo…');
+  termConv(`<span class="info">Extrayendo ${id} → ${dst}…</span>`);
+
+  let fakePct = 2;
+  const fakeIv = setInterval(() => {
+    fakePct = Math.min(fakePct+1, 92);
+    showProgress('conv', fakePct, `Extrayendo… ${fakePct}%`);
+  }, 2000);
+
+  try {
+    const data = await apiPost('/api/extract', {
+      part: settings.wfsPath, id, dest: dst, opts, wwt: settings.wwtPath
+    });
+    clearInterval(fakeIv);
+    showProgress('conv', 100, data.rc===0 ? 'Completado' : 'Error');
+    showResult(data, termConv);
+    if (data.rc === 0) termConv(`<span class="ok">✓ ISO exportada en ${dst}</span>`);
+    else               termConv(`<span class="err">✗ Código de error: ${data.rc}</span>`);
+  } catch(e) {
+    clearInterval(fakeIv);
+    termConv(`<span class="err">✗ ${esc(e.message)}</span>`);
+  }
+}
+
+async function runBatch() {
+  const src = document.getElementById('batch-src').value.trim();
+  const dst = document.getElementById('batch-dst').value.trim();
+  if (!src||!dst) { alert('Rellena los campos'); return; }
+  const cmd = `${settings.wwtPath} ADD -p "${dst}" "${src}"/*.iso`;
+  termConv(`<span class="cmd">$ ${esc(cmd)}</span>`);
+  termConv(`<span class="info">Ejecutando lote, puede tardar varios minutos…</span>`);
+  try {
+    const data = await apiPost('/api/run', { cmd, wwt: settings.wwtPath });
+    showResult(data, termConv);
+    if (data.rc === 0) termConv(`<span class="ok">✓ Lote completado</span>`);
+    else               termConv(`<span class="err">✗ Código de error: ${data.rc}</span>`);
+  } catch(e) {
+    termConv(`<span class="err">✗ ${esc(e.message)}</span>`);
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  VERIFICACIÓN (REAL)
+// ═══════════════════════════════════════════════
+async function verifyGame() {
+  const src = document.getElementById('verify-path').value.trim();
+  if (!src) { alert('Especifica un juego o ruta'); return; }
+  termVerify(`<span class="info">Verificando ${src}…</span>`);
+  try {
+    const data = await apiPost('/api/verify', {
+      src, wit: settings.witPath, wwt: settings.wwtPath
+    });
+    showResult(data, termVerify);
+    const ok = data.rc === 0;
+    showVerifyResult(src, ok, data.stdout+data.stderr);
+  } catch(e) {
+    termVerify(`<span class="err">✗ ${esc(e.message)}</span>`);
+  }
+}
+
+async function verifyAll() {
+  termVerify(`<span class="info">Verificando todos los juegos en ${settings.wfsPath}…</span>`);
+  try {
+    const data = await apiPost('/api/verify', {
+      part: settings.wfsPath, wwt: settings.wwtPath
+    });
+    showResult(data, termVerify);
+    // Parsear líneas de resultado por juego
+    const res = document.getElementById('verify-results');
+    const lines = (data.stdout||'').split('\n').filter(l => /[A-Z0-9]{4,6}/.test(l));
+    if (lines.length) {
+      res.innerHTML = lines.map(l => {
+        const ok = !/error|bad|fail/i.test(l);
+        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
+                  background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+          <span class="tag ${ok?'tag-ok':'tag-err'}">${ok?'OK':'ERR'}</span>
+          <span style="font-size:12px;color:var(--text2)">${esc(l)}</span>
+        </div>`;
+      }).join('');
+    } else {
+      const ok = data.rc === 0;
+      res.innerHTML = `<div style="padding:10px 14px;background:var(--bg2);
+          border:1px solid var(--border);border-radius:8px">
+        <span class="tag ${ok?'tag-ok':'tag-err'}">${ok?'OK':'ERROR'}</span>
+        <span style="font-size:13px;color:var(--text2);margin-left:10px">
+          ${ok ? 'Todos los juegos verificados correctamente' : 'Se encontraron errores'}</span>
+      </div>`;
+    }
+  } catch(e) {
+    termVerify(`<span class="err">✗ ${esc(e.message)}</span>`);
+  }
+}
+
+function showVerifyResult(path, ok, detail) {
+  document.getElementById('verify-results').innerHTML =
+    `<div style="padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px">
+      <span class="tag ${ok?'tag-ok':'tag-err'}">${ok?'OK':'ERROR'}</span>
+      <span style="font-size:13px;color:var(--text2);margin-left:10px">${esc(path)}</span>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════
+//  VERIFICAR HERRAMIENTAS (REAL)
+// ═══════════════════════════════════════════════
+async function checkTools() {
+  const ws  = document.getElementById('wit-status');
+  const wws = document.getElementById('wwt-status');
+  try {
+    const data = await apiGet('/api/status');
+    settings.witPath  = data.wit  || settings.witPath;
+    settings.wwtPath  = data.wwt  || settings.wwtPath;
+
+    ws.className  = 'tag '+(data.wit_ok  ? 'tag-ok' : 'tag-err');
+    ws.textContent  = data.wit_ok  ? `wit: ${data.wit}`  : 'wit: no encontrado';
+    wws.className = 'tag '+(data.wwt_ok ? 'tag-ok' : 'tag-err');
+    wws.textContent = data.wwt_ok ? `wwt: ${data.wwt}` : 'wwt: no encontrado';
+
+    // Actualizar campos de ajustes con las rutas detectadas
+    const witEl = document.getElementById('wit-path');
+    const wwtEl = document.getElementById('wwt-path');
+    if (witEl && data.wit) witEl.value = data.wit;
+    if (wwtEl && data.wwt) wwtEl.value = data.wwt;
+
+    term(`<span class="${data.wit_ok?'ok':'err'}">${data.wit_ok?'✓':'✗'} wit: ${data.wit||'no encontrado'}</span>`);
+    term(`<span class="${data.wwt_ok?'ok':'err'}">${data.wwt_ok?'✓':'✗'} wwt: ${data.wwt||'no encontrado'}</span>`);
+  } catch(e) {
+    ws.className  = 'tag tag-err'; ws.textContent  = 'servidor: offline';
+    wws.className = 'tag tag-err'; wws.textContent = 'servidor: offline';
+    term(`<span class="err">✗ Servidor no disponible en ${API}</span>`);
+    term(`<span class="info">Lanza: python3 wii-manager-server.py</span>`);
+  }
+}
+
+async function detectTool(tool) {
+  try {
+    const data = await apiGet('/api/status');
+    const path = data[tool];
+    const el   = document.getElementById(tool+'-path');
+    if (path && el) { el.value = path; settings[tool+'Path'] = path; }
+    term(`<span class="${path?'ok':'err'}">${path ? '✓ '+tool+': '+path : '✗ '+tool+' no encontrado'}</span>`);
+  } catch(e) {
+    term(`<span class="err">✗ ${esc(e.message)}</span>`);
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  AJUSTES
+// ═══════════════════════════════════════════════
+function saveSettings() {
+  settings.witPath     = document.getElementById('wit-path').value;
+  settings.wwtPath     = document.getElementById('wwt-path').value;
+  settings.wfsPath     = document.getElementById('wfs-path').value;
+  settings.coverRegion = document.getElementById('cover-region').value;
+  settings.coverType   = document.getElementById('cover-type').value;
+  // Sincronizar también el campo del sidebar
+  document.getElementById('device-path').value = settings.wfsPath;
+  try { localStorage.setItem('wiimanager-settings', JSON.stringify(settings)); } catch(e){}
+  alert('Configuración guardada');
+  checkTools();
+}
+
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem('wiimanager-settings')||'{}');
+    Object.assign(settings, s);
+    if (s.witPath) document.getElementById('wit-path').value = s.witPath;
+    if (s.wwtPath) document.getElementById('wwt-path').value = s.wwtPath;
+    if (s.wfsPath) {
+      document.getElementById('wfs-path').value   = s.wfsPath;
+      document.getElementById('device-path').value = s.wfsPath;
+    }
+    if (s.coverRegion) document.getElementById('cover-region').value = s.coverRegion;
+    if (s.coverType)   document.getElementById('cover-type').value   = s.coverType;
+  } catch(e) {}
+}
+
+function generateLauncher() {
+  const dir = prompt('Ruta completa donde guardaste los archivos:', '/home/'+( navigator.userAgent.match(/Linux/) ? 'usuario' : 'usuario')+'/wii-manager');
+  if (!dir) return;
+  const content = `[Desktop Entry]
+Version=1.0
+Type=Application
+Name=WiiFlow Manager
+Comment=Gestor de juegos Wii (wit/wwt GUI)
+Exec=bash -c "cd '${dir}' && python3 wii-manager-server.py & sleep 1 && xdg-open http://localhost:8765"
+Icon=applications-games
+Terminal=false
+Categories=Game;Utility;
+StartupNotify=true
+`;
+  download('wiimanager.desktop', content);
+}
+
+function generateScript() {
+  const content = `#!/bin/bash
+# WiiFlow Manager — Script de bash
+WWT="${settings.wwtPath}"
+WIT="${settings.witPath}"
+WFS="${settings.wfsPath}"
+
+list_games()   { $WWT LIST   -p "$WFS"; }
+add_game()     { $WWT ADD    -p "$WFS" "$1"; }
+remove_game()  { $WWT REMOVE -p "$WFS" "$1"; }
+extract_game() { $WWT EXTRACT -p "$WFS" "$1" --dest "$2"; }
+verify_all()   { $WWT VERIFY  -p "$WFS"; }
+verify_game()  { $WIT VERIFY "$1"; }
+
+case "$1" in
+  list)    list_games ;;
+  add)     add_game "$2" ;;
+  remove)  remove_game "$2" ;;
+  extract) extract_game "$2" "$3" ;;
+  verify)  verify_game "$2" ;;
+  *)
+    echo "Uso: $0 {list|add <iso>|remove <id>|extract <id> <dst>|verify <iso>}"
+    ;;
+esac
+`;
+  download('wii-manager.sh', content);
+}
+
+// ═══════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════
+function term(html) {
+  const el = document.getElementById('term');
+  if (!el) return;
+  el.innerHTML += html + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+function termConv(html) {
+  const el = document.getElementById('term-conv');
+  if (!el) return;
+  el.innerHTML += html + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+function termVerify(html) {
+  const el = document.getElementById('term-verify');
+  if (!el) return;
+  el.innerHTML += html + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+function clearTerm() {
+  const el = document.getElementById('term');
+  if (el) el.innerHTML = '<span class="info">Terminal limpiada.</span>\n';
+}
+
+function showProgress(prefix, pct, msg) {
+  const panel  = document.getElementById(prefix+'-progress');
+  const fill   = document.getElementById(prefix+'-fill');
+  const status = document.getElementById(prefix+'-status');
+  if (panel)  panel.style.display = '';
+  if (fill)   fill.style.width    = pct+'%';
+  if (status) status.textContent  = msg;
+}
+
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function browseFile(inputId) {
+  const el  = document.getElementById(inputId);
+  const val = prompt(
+    'Introduce la ruta completa del archivo\n(también puedes usar: zenity --file-selection 2>/dev/null)',
+    el?.value || '');
+  if (val !== null && el) { el.value = val; updateAddPreview(); }
+}
+
+function browseDir(inputId) {
+  const el  = document.getElementById(inputId);
+  const val = prompt(
+    'Introduce la ruta del directorio\n(también puedes usar: zenity --file-selection --directory 2>/dev/null)',
+    el?.value || '');
+  if (val !== null && el) el.value = val;
+}
+
+function pickFromLibrary(inputId) {
+  const lista = games.map(g=>`${g.id}  ${g.title}`).join('\n');
+  const val   = prompt(`Elige un juego (escribe el ID):\n\n${lista}`, '');
+  if (val) {
+    const id = val.trim().split(/\s+/)[0];
+    const el = document.getElementById(inputId);
+    if (el) el.value = id;
+  }
+}
+
+function previewCmd(type) {
+  if (type==='iso2wfs') {
+    const src  = document.getElementById('src-iso').value||'[src.iso]';
+    const dst  = document.getElementById('dst-wfs').value||'[dst]';
+    const opts = document.getElementById('conv-opts').value;
+    alert(`Comando:\n\n${settings.wwtPath} ADD -p "${dst}" ${opts} "${src}"`);
+  } else {
+    const id   = document.getElementById('src-wfs').value||'[ID]';
+    const dst  = document.getElementById('dst-iso').value||'[dst/]';
+    const opts = document.getElementById('conv-opts2').value;
+    alert(`Comando:\n\n${settings.wwtPath} EXTRACT -p "${settings.wfsPath}" ${opts} ${id} --dest "${dst}"`);
+  }
+}
+
+function download(filename, content) {
+  const a    = document.createElement('a');
+  a.href     = 'data:text/plain;charset=utf-8,'+encodeURIComponent(content);
+  a.download = filename;
+  a.click();
+}
+</script>
+</body>
+</html>
