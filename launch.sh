@@ -223,5 +223,12 @@ info "Log del servidor: $LOG_FILE"
 info "Para detener:     ./launch.sh --stop"
 echo ""
 
-# Mantener el script en primer plano para que Ctrl+C funcione limpiamente
-wait
+# Mantener el script en primer plano para poder recibir Ctrl+C.
+# Usamos un bucle en lugar de `wait` para no quedar bloqueados
+# esperando al proceso del navegador (gio open).
+while server_running; do
+    sleep 2
+done
+
+warn "El servidor se ha detenido inesperadamente"
+info "Revisa el log: $LOG_FILE"
