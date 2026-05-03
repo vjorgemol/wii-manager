@@ -11,7 +11,7 @@
     --bg: #0d0f14;
     --bg2: #13161e;
     --bg3: #1a1e28;
-    --bg4: #20253200;
+    --bg4: #202532;
     --border: rgba(255,255,255,0.07);
     --border2: rgba(255,255,255,0.13);
     --text: #e8eaf0;
@@ -24,7 +24,54 @@
     --amber: #f0a040;
     --purple: #a06cf0;
     --card-r: 12px;
+    --term-bg: #0a0b0f;
+    --term-text: #a8c8a8;
   }
+
+  /* ─── TEMA CLARO ─── */
+  :root.light {
+    --bg: #f0f2f7;
+    --bg2: #ffffff;
+    --bg3: #e8eaf0;
+    --bg4: #dde0ea;
+    --border: rgba(0,0,0,0.08);
+    --border2: rgba(0,0,0,0.15);
+    --text: #1a1e2e;
+    --text2: #4a5068;
+    --text3: #8b92a8;
+    --accent: #3d5ce0;
+    --accent2: #2a45c0;
+    --green: #1a9e6a;
+    --red: #d04040;
+    --amber: #c07800;
+    --purple: #7040c0;
+    --term-bg: #1a1e28;
+    --term-text: #a8c8a8;
+  }
+
+  /* Transición suave al cambiar de tema */
+  *, *::before, *::after {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+  /* Excluir transiciones en elementos interactivos para que no se sientan lentos */
+  button, input, select, a { transition: background-color 0.15s, border-color 0.15s, color 0.15s; }
+
+  /* Botón de tema */
+  .theme-toggle {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    padding: 5px 12px;
+    color: var(--text2);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .theme-toggle:hover { background: var(--bg4); color: var(--text); }
 
   body {
     font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
@@ -313,7 +360,7 @@
   /* ─── TERMINAL ─── */
   .terminal-panel {
     margin-top: 20px;
-    background: #0a0b0f;
+    background: var(--term-bg);
     border: 1px solid var(--border);
     border-radius: var(--card-r);
     overflow: hidden;
@@ -329,7 +376,7 @@
   .term-output {
     padding: 12px 14px;
     font-size: 12px;
-    color: #a8c8a8;
+    color: var(--term-text);
     min-height: 80px;
     max-height: 200px;
     overflow-y: auto;
@@ -648,6 +695,10 @@
   <div class="header-right">
     <div id="wit-status" class="tag tag-err" title="Estado de wit">wit: no encontrado</div>
     <div id="wwt-status" class="tag tag-err" title="Estado de wwt">wwt: no encontrado</div>
+    <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" title="Cambiar tema">
+      <span id="theme-icon">☀</span>
+      <span id="theme-label">Claro</span>
+    </button>
     <button class="btn" onclick="checkTools()">↺ Verificar</button>
   </div>
 </header>
@@ -1116,8 +1167,37 @@ let filtered = [];
 /** Set con los Game IDs de los juegos actualmente seleccionados */
 let selected = new Set();
 
-/** Modo de vista actual: 'grid' | 'list' */
-let viewMode = 'grid';
+/** Modo de tema actual: 'dark' | 'light' */
+let currentTheme = 'dark';
+
+/**
+ * Alterna entre tema oscuro y claro.
+ * Guarda la preferencia en localStorage para recordarla entre sesiones.
+ */
+function toggleTheme() {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  applyTheme(currentTheme);
+  try { localStorage.setItem('wiimanager-theme', currentTheme); } catch(e) {}
+}
+
+/**
+ * Aplica el tema indicado al documento y actualiza el botón del header.
+ * @param {string} theme - 'dark' | 'light'
+ */
+function applyTheme(theme) {
+  const icon  = document.getElementById('theme-icon');
+  const label = document.getElementById('theme-label');
+  if (theme === 'light') {
+    document.documentElement.classList.add('light');
+    if (icon)  icon.textContent  = '☽';
+    if (label) label.textContent = 'Oscuro';
+  } else {
+    document.documentElement.classList.remove('light');
+    if (icon)  icon.textContent  = '☀';
+    if (label) label.textContent = 'Claro';
+  }
+  currentTheme = theme;
+}
 
 /** Vista principal activa: 'library' | 'convert' | 'verify' | 'settings' */
 let currentView = 'library';
@@ -1225,6 +1305,11 @@ function esc(s) {
  */
 window.addEventListener('DOMContentLoaded', async () => {
   loadSettings();
+  // Restaurar tema guardado
+  try {
+    const savedTheme = localStorage.getItem('wiimanager-theme') || 'dark';
+    applyTheme(savedTheme);
+  } catch(e) {}
   await checkTools();
   renderGames();
   updateStats();
