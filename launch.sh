@@ -136,24 +136,20 @@ start_server() {
     local pid=$!
     echo "$pid" > "$PID_FILE"
 
-    # Esperar a que el servidor esté listo (máximo 10s)
+    # Esperar a que el servidor acepte conexiones (máximo 15s)
+    info "Esperando a que el servidor esté listo…"
     local i=0
-    while (( i < 20 )); do
-        if curl -sf "$CLIENT_URL/api/status" &>/dev/null; then
+    while (( i < 30 )); do
+        # Intentar conectar al puerto 8765 con bash puro (sin curl)
+        if (echo > /dev/tcp/127.0.0.1/8765) &>/dev/null; then
             ok "Servidor listo (PID $pid)"
             return 0
         fi
-        sleep 0.5; (( i++ ))
+        sleep 0.5
+        (( i++ ))
     done
 
-    # Si curl no está disponible, esperar el tiempo fijo
-    if ! command -v curl &>/dev/null; then
-        sleep "$WAIT_SECONDS"
-        ok "Servidor arrancado (PID $pid) — sin curl para verificar"
-        return 0
-    fi
-
-    err "El servidor no respondió en 10 segundos"
+    err "El servidor no respondió en 15 segundos"
     err "Revisa el log: $LOG_FILE"
     stop_server
     exit 1
