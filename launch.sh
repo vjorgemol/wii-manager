@@ -66,29 +66,40 @@ stop_server() {
 }
 
 # Abre la URL en el navegador predeterminado del sistema.
-# En Ubuntu 24.04 con GNOME, gio open es el método más fiable.
+# En Ubuntu 24.04 con GNOME, gio open necesita las variables de sesión
+# exportadas explícitamente cuando se ejecuta desde un script.
 open_browser() {
     info "Abriendo $CLIENT_URL …"
 
+    # Capturar variables de sesión del usuario actual
+    local uid; uid=$(id -u)
+    local display="${DISPLAY:-:1}"
+    local dbus="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/${uid}/bus}"
+    local xdg_runtime="${XDG_RUNTIME_DIR:-/run/user/${uid}}"
+
     if command -v gio &>/dev/null; then
-        gio open "$CLIENT_URL" &>/dev/null &
+        DISPLAY="$display" \
+        DBUS_SESSION_BUS_ADDRESS="$dbus" \
+        XDG_RUNTIME_DIR="$xdg_runtime" \
+        gio open "$CLIENT_URL" &
         disown
         ok "Navegador abierto (gio open)"
 
     elif command -v xdg-open &>/dev/null; then
-        xdg-open "$CLIENT_URL" &>/dev/null &
+        DISPLAY="$display" \
+        DBUS_SESSION_BUS_ADDRESS="$dbus" \
+        XDG_RUNTIME_DIR="$xdg_runtime" \
+        xdg-open "$CLIENT_URL" &
         disown
         ok "Navegador abierto (xdg-open)"
 
     elif [[ -x /snap/bin/firefox ]]; then
-        /snap/bin/firefox "$CLIENT_URL" &>/dev/null &
+        DISPLAY="$display" \
+        DBUS_SESSION_BUS_ADDRESS="$dbus" \
+        XDG_RUNTIME_DIR="$xdg_runtime" \
+        /snap/bin/firefox "$CLIENT_URL" &
         disown
         ok "Navegador abierto (Firefox snap)"
-
-    elif command -v firefox &>/dev/null; then
-        firefox "$CLIENT_URL" &>/dev/null &
-        disown
-        ok "Navegador abierto (Firefox)"
 
     else
         warn "No se encontró ningún navegador."
