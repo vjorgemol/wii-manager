@@ -81,7 +81,7 @@ open_browser() {
         DISPLAY="$display" \
         DBUS_SESSION_BUS_ADDRESS="$dbus" \
         XDG_RUNTIME_DIR="$xdg_runtime" \
-        gio open "$CLIENT_URL" &
+        gio open "$CLIENT_URL" >/dev/null 2>/dev/null &
         disown
         ok "Navegador abierto (gio open)"
 
@@ -89,7 +89,7 @@ open_browser() {
         DISPLAY="$display" \
         DBUS_SESSION_BUS_ADDRESS="$dbus" \
         XDG_RUNTIME_DIR="$xdg_runtime" \
-        xdg-open "$CLIENT_URL" &
+        xdg-open "$CLIENT_URL" >/dev/null 2>/dev/null &
         disown
         ok "Navegador abierto (xdg-open)"
 
@@ -97,7 +97,7 @@ open_browser() {
         DISPLAY="$display" \
         DBUS_SESSION_BUS_ADDRESS="$dbus" \
         XDG_RUNTIME_DIR="$xdg_runtime" \
-        /snap/bin/firefox "$CLIENT_URL" &
+        /snap/bin/firefox "$CLIENT_URL" >/dev/null 2>/dev/null &
         disown
         ok "Navegador abierto (Firefox snap)"
 
