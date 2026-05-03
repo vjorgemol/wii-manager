@@ -496,6 +496,145 @@
   details summary { cursor: pointer; list-style: none; color: var(--text3); font-size: 12px; }
   details summary::-webkit-details-marker { display: none; }
   details[open] summary { color: var(--text2); margin-bottom: 8px; }
+
+  /* ─── RESPONSIVE ─── */
+
+  /* Tablet: ≤ 900px — sidebar colapsada, stats en 2 columnas */
+  @media (max-width: 900px) {
+    .layout {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+    }
+
+    aside {
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      padding: 8px 0;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0;
+    }
+
+    .sidebar-section { display: none; }
+
+    .nav-btn {
+      padding: 8px 14px;
+      width: auto;
+      font-size: 12px;
+      border-radius: 6px;
+      margin: 2px 4px;
+    }
+    .nav-btn .icon { font-size: 15px; }
+
+    /* Filtros en fila compacta */
+    .device-status {
+      width: 100%;
+      margin: 0;
+      padding: 8px 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .device-label { display: none; }
+    .device-status > div:last-child { /* botón explorar */
+      margin-top: 0;
+    }
+    .device-status > div:last-child .btn { white-space: nowrap; }
+
+    .stats-bar {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    main { padding: 16px; }
+  }
+
+  /* Móvil: ≤ 600px */
+  @media (max-width: 600px) {
+    /* Header compacto */
+    header { padding: 10px 14px; gap: 10px; }
+    header h1 { font-size: 14px; }
+    header h1 span { display: none; }
+    .header-right gap { gap: 6px; }
+    #wit-status, #wwt-status { display: none; } /* solo el botón verificar */
+
+    /* Sidebar como barra de iconos */
+    aside { padding: 4px 0; }
+    .nav-btn span:not(.icon) { display: none; } /* solo iconos */
+    .nav-btn { padding: 8px 10px; }
+
+    /* Ruta del dispositivo ocupa todo */
+    .device-status {
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .device-path { flex: 1; min-width: 0; }
+    .device-status > div:last-child { width: 100%; }
+    .device-status > div:last-child .btn { width: 100%; justify-content: center; }
+
+    /* Stats en 2 columnas pequeñas */
+    .stats-bar {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .stat-value { font-size: 18px; }
+
+    /* Toolbar en columna */
+    .toolbar { gap: 8px; }
+    .search-box { min-width: 0; }
+    .toolbar .btn { padding: 7px 10px; font-size: 12px; }
+
+    /* Cuadrícula más pequeña */
+    .game-grid {
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+    }
+
+    /* Lista: ocultar columnas menos importantes */
+    th:nth-child(2),  /* miniatura */
+    td:nth-child(2),
+    th:nth-child(6),  /* formato */
+    td:nth-child(6),
+    th:nth-child(7),  /* región */
+    td:nth-child(7)  { display: none; }
+
+    /* Terminal más pequeño */
+    .term-output { font-size: 11px; max-height: 140px; }
+
+    /* Modales full-screen */
+    .modal {
+      width: 100vw;
+      max-height: 100dvh;
+      border-radius: 16px 16px 0 0;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      margin: 0;
+    }
+    .modal-overlay.open {
+      align-items: flex-end;
+    }
+
+    /* Formularios de conversión */
+    .form-group div[style*="display:flex"] {
+      flex-direction: column;
+    }
+
+    /* Ocultar toggle de vista en móvil (siempre grid) */
+    .view-toggle { display: none; }
+
+    main { padding: 12px; }
+  }
+
+  /* Móvil muy pequeño: ≤ 380px */
+  @media (max-width: 380px) {
+    .stats-bar { grid-template-columns: 1fr 1fr; gap: 6px; }
+    .stat-card { padding: 10px 12px; }
+    .stat-value { font-size: 16px; }
+    .game-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+    .toolbar .btn span { display: none; } /* solo icono en botones */
+  }
 </style>
 </head>
 <body>
@@ -547,13 +686,13 @@
 
   <div class="device-status">
     <div class="device-label">Ruta WFS / USB</div>
-    <div class="device-path">
+    <div class="device-path" style="flex:1;min-width:0">
       <div class="dot off" id="device-dot"></div>
-      <input type="text" id="device-path" placeholder="/media/usb/wii" value="/media/usb/wii">
+      <input type="text" id="device-path" placeholder="/dev/sdb1 (vacío = auto)">
     </div>
     <div style="margin-top:8px">
       <button class="btn" style="width:100%; justify-content:center" onclick="scanDevice()">
-        Explorar dispositivo
+        <span>⊙</span> Explorar dispositivo
       </button>
     </div>
   </div>
@@ -929,41 +1068,130 @@ Para instalar wit/wwt: https://wit.wiimm.de/download.html
 </div>
 
 <script>
+/**
+ * wii-manager.html — Frontend de WiiFlow Manager
+ * ================================================
+ * Interfaz gráfica web para gestionar juegos Wii en particiones WBFS,
+ * apoyándose en el backend wii-manager-server.py que expone una API REST
+ * local en http://localhost:8765.
+ *
+ * Estructura del código:
+ *   1. Estado global y constantes
+ *   2. Capa de API (fetch al backend)
+ *   3. Inicialización
+ *   4. Navegación (vistas y pestañas)
+ *   5. Renderizado (cuadrícula, lista, estadísticas)
+ *   6. Selección de juegos
+ *   7. Búsqueda, filtros y ordenación
+ *   8. Cambio de vista (grid / lista)
+ *   9. Carátulas (GameTDB con fallback por región y tipo)
+ *  10. Escaneo del dispositivo
+ *  11. Añadir juego
+ *  12. Eliminar juego(s)
+ *  13. Detalle de juego
+ *  14. Extracción a ISO
+ *  15. Conversión (ISO↔WBFS, lote)
+ *  16. Verificación de integridad
+ *  17. Comprobación de herramientas (wit/wwt)
+ *  18. Ajustes y persistencia
+ *  19. Generación de archivos auxiliares (.desktop, .sh)
+ *  20. Helpers de UI (terminal, modales, progress, etc.)
+ *
+ * Licencia: GNU GPL v3
+ */
+
 // ═══════════════════════════════════════════════
-//  ESTADO
+//  1. ESTADO GLOBAL Y CONSTANTES
 // ═══════════════════════════════════════════════
+
+/** URL base del servidor backend local */
 const API = 'http://localhost:8765';
-let games = [], filtered = [], selected = new Set();
-let viewMode = 'grid', currentView = 'library';
-let sortCol = 'title', sortDir = 1, activeFilter = 'all';
+
+/** Lista completa de juegos devuelta por el backend */
+let games = [];
+
+/** Subconjunto de `games` después de aplicar búsqueda y filtros */
+let filtered = [];
+
+/** Set con los Game IDs de los juegos actualmente seleccionados */
+let selected = new Set();
+
+/** Modo de vista actual: 'grid' | 'list' */
+let viewMode = 'grid';
+
+/** Vista principal activa: 'library' | 'convert' | 'verify' | 'settings' */
+let currentView = 'library';
+
+/** Columna por la que se ordena la lista ('title' | 'id' | 'size') */
+let sortCol = 'title';
+
+/** Dirección de ordenación: 1 = ascendente, -1 = descendente */
+let sortDir = 1;
+
+/** Filtro de formato activo: 'all' | 'wfs' | 'iso' | 'wbfs' */
+let activeFilter = 'all';
+
+/** Contador de carátulas cargadas con éxito en la sesión actual */
 let coversLoaded = 0;
+
+/**
+ * Configuración persistida en localStorage.
+ * Se carga al inicio con loadSettings() y se guarda con saveSettings().
+ */
 let settings = {
-  witPath: '/usr/bin/wit', wwtPath: '/usr/bin/wwt',
-  wfsPath: '/dev/sdb1', coverRegion: 'ES', coverType: 'cover3D'
+  witPath:     '/usr/bin/wit',   // ruta al ejecutable wit
+  wwtPath:     '/usr/bin/wwt',   // ruta al ejecutable wwt
+  wfsPath:     '/dev/sdb1',      // ruta de la partición WBFS (vacío = --auto)
+  coverRegion: 'ES',             // región preferida para carátulas de GameTDB
+  coverType:   'cover3D',        // tipo de carátula preferido
 };
 
 // ═══════════════════════════════════════════════
-//  API: llamadas al backend
+//  2. CAPA DE API
 // ═══════════════════════════════════════════════
+
+/**
+ * Realiza una petición GET al backend y devuelve la respuesta JSON.
+ *
+ * @param {string} endpoint - Ruta de la API, ej. '/api/list'
+ * @param {Object} params   - Parámetros que se añaden como query string
+ * @returns {Promise<Object>} Respuesta JSON del servidor
+ * @throws {Error} Si el servidor responde con un código HTTP de error
+ */
 async function apiGet(endpoint, params = {}) {
-  const qs = new URLSearchParams(params).toString();
+  const qs  = new URLSearchParams(params).toString();
   const url = `${API}${endpoint}${qs ? '?' + qs : ''}`;
-  const r = await fetch(url);
+  const r   = await fetch(url);
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return r.json();
 }
 
+/**
+ * Realiza una petición POST al backend con body JSON y devuelve la respuesta.
+ *
+ * @param {string} endpoint - Ruta de la API, ej. '/api/add'
+ * @param {Object} body     - Objeto que se serializa como JSON en el body
+ * @returns {Promise<Object>} Respuesta JSON del servidor
+ * @throws {Error} Si el servidor responde con un código HTTP de error
+ */
 async function apiPost(endpoint, body = {}) {
   const r = await fetch(`${API}${endpoint}`, {
-    method: 'POST',
+    method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    body:    JSON.stringify(body)
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return r.json();
 }
 
-// Muestra stdout+stderr en el terminal indicado y devuelve el resultado
+/**
+ * Vuelca el comando ejecutado y su salida (stdout/stderr) en un terminal
+ * de la GUI, aplicando escape HTML para evitar inyecciones.
+ *
+ * @param {Object}   data   - Respuesta del backend con campos cmd/stdout/stderr
+ * @param {Function} termFn - Función de terminal donde escribir (term, termConv…)
+ * @returns {Object} El mismo objeto `data` para permitir encadenamiento
+ */
 function showResult(data, termFn) {
   if (data.cmd)    termFn(`<span class="cmd">$ ${esc(data.cmd)}</span>`);
   if (data.stdout) termFn(esc(data.stdout.trim()));
@@ -971,26 +1199,47 @@ function showResult(data, termFn) {
   return data;
 }
 
+/**
+ * Escapa caracteres HTML especiales para mostrar texto sin riesgo de XSS.
+ * Convierte &, < y > en sus entidades HTML equivalentes.
+ *
+ * @param {*} s - Valor a escapar (se convierte a string si es necesario)
+ * @returns {string} Texto seguro para insertar en innerHTML
+ */
 function esc(s) {
   return String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 // ═══════════════════════════════════════════════
-//  INICIALIZACIÓN
+//  3. INICIALIZACIÓN
 // ═══════════════════════════════════════════════
+
+/**
+ * Punto de entrada de la aplicación.
+ * Se ejecuta cuando el DOM está completamente cargado.
+ * Carga la configuración guardada, verifica las herramientas
+ * y deja la biblioteca vacía hasta que el usuario explore el dispositivo.
+ */
 window.addEventListener('DOMContentLoaded', async () => {
   loadSettings();
   await checkTools();
-  // No cargamos juegos de muestra; la biblioteca empieza vacía
-  // hasta que el usuario pulse "Explorar dispositivo"
   renderGames();
   updateStats();
 });
 
 // ═══════════════════════════════════════════════
-//  VIEWS / TABS
+//  4. NAVEGACIÓN
 // ═══════════════════════════════════════════════
+
+/**
+ * Muestra una vista principal ocultando las demás y marca el botón
+ * de navegación correspondiente como activo.
+ *
+ * @param {string} v - Identificador de la vista: 'library' | 'convert' | 'verify' | 'settings'
+ */
 function showView(v) {
   currentView = v;
   ['library','convert','verify','settings'].forEach(id => {
@@ -999,6 +1248,14 @@ function showView(v) {
   });
 }
 
+/**
+ * Activa una pestaña dentro de una vista con múltiples tabs.
+ * Busca los elementos .tab y .tab-content dentro del grupo indicado
+ * y aplica la clase 'active' al que corresponde con tabId.
+ *
+ * @param {string} tabId  - ID del elemento tab-content a mostrar
+ * @param {string} group  - ID de la vista padre (ej. 'convert')
+ */
 function showTab(tabId, group) {
   document.querySelectorAll(`#view-${group} .tab`).forEach(t =>
     t.classList.toggle('active', t.getAttribute('onclick')?.includes(tabId)));
@@ -1007,10 +1264,22 @@ function showTab(tabId, group) {
 }
 
 // ═══════════════════════════════════════════════
-//  RENDER
+//  5. RENDERIZADO
 // ═══════════════════════════════════════════════
+
+/**
+ * Renderiza la biblioteca completa: cuadrícula, lista y estadísticas.
+ * Es el punto de entrada principal para refrescar la UI tras cualquier
+ * cambio en `filtered` o `selected`.
+ */
 function renderGames() { renderGrid(); renderList(); updateStats(); }
 
+/**
+ * Genera el HTML de la vista en cuadrícula a partir de `filtered`.
+ * Cada tarjeta muestra la carátula (si se ha cargado), el título,
+ * el ID, el formato y el tamaño del juego.
+ * Si no hay juegos, muestra un estado vacío con instrucciones.
+ */
 function renderGrid() {
   const grid = document.getElementById('game-grid');
   if (!filtered.length) {
@@ -1049,6 +1318,10 @@ function renderGrid() {
     </div>`).join('');
 }
 
+/**
+ * Genera el HTML de la vista en lista (tabla) a partir de `filtered`.
+ * Incluye miniatura, título, ID, tamaño, formato, región y botones de acción.
+ */
 function renderList() {
   document.getElementById('game-tbody').innerHTML = filtered.map(g => `
     <tr class="${selected.has(g.id)?'selected':''}"
@@ -1069,6 +1342,13 @@ function renderList() {
     </tr>`).join('');
 }
 
+/**
+ * Actualiza las tarjetas de estadísticas del encabezado de la biblioteca.
+ *
+ * @param {number} [usedGb] - GB usados en la partición (del backend).
+ *                            Si se omite, se suma el tamaño de los juegos.
+ * @param {number} [freeGb] - GB libres en la partición (del backend).
+ */
 function updateStats(usedGb, freeGb) {
   document.getElementById('stat-games').textContent = games.length;
   if (usedGb !== undefined) {
@@ -1084,20 +1364,39 @@ function updateStats(usedGb, freeGb) {
   document.getElementById('btn-delete').disabled = selected.size === 0;
 }
 
+/**
+ * Recuenta las carátulas visibles en la cuadrícula y actualiza
+ * el contador de la stat-card correspondiente.
+ * Se llama desde el evento onload de cada <img> de carátula.
+ */
 function countCovers() {
   coversLoaded = document.querySelectorAll('[id^="cover-"][style*="block"]').length;
   document.getElementById('stat-covers').textContent = coversLoaded;
 }
 
 // ═══════════════════════════════════════════════
-//  SELECCIÓN
+//  6. SELECCIÓN
 // ═══════════════════════════════════════════════
+
+/**
+ * Alterna la selección de un juego por su ID.
+ * Ignora el evento si se ha hecho clic en un botón hijo (para no
+ * interferir con las acciones rápidas de la tarjeta).
+ *
+ * @param {Event}   e     - Evento de clic original
+ * @param {string}  id    - Game ID del juego
+ * @param {boolean} force - Si es true, no comprueba el tipo de elemento
+ */
 function toggleSelect(e, id, force) {
   if (e && !force && e.target.tagName==='BUTTON') return;
   selected.has(id) ? selected.delete(id) : selected.add(id);
   renderGames();
 }
 
+/**
+ * Selecciona o deselecciona todos los juegos visibles (filtrados)
+ * según el estado del checkbox "seleccionar todos" de la cabecera de tabla.
+ */
 function toggleAll() {
   const cb = document.getElementById('sel-all');
   cb.checked ? filtered.forEach(g => selected.add(g.id)) : selected.clear();
@@ -1105,8 +1404,14 @@ function toggleAll() {
 }
 
 // ═══════════════════════════════════════════════
-//  BÚSQUEDA / FILTROS / ORDEN
+//  7. BÚSQUEDA, FILTROS Y ORDENACIÓN
 // ═══════════════════════════════════════════════
+
+/**
+ * Activa un filtro de formato en el sidebar y recalcula la vista.
+ *
+ * @param {string} fmt - 'all' | 'wfs' | 'iso' | 'wbfs'
+ */
 function filterGames(fmt) {
   activeFilter = fmt;
   ['all','wfs','iso','wbfs'].forEach(f =>
@@ -1114,14 +1419,21 @@ function filterGames(fmt) {
   applyFilters();
 }
 
+/** Dispara applyFilters cuando el usuario escribe en el campo de búsqueda. */
 function filterSearch() { applyFilters(); }
 
+/**
+ * Aplica el texto de búsqueda y el filtro de formato activo sobre `games`,
+ * ordena el resultado según sortCol/sortDir y lo guarda en `filtered`.
+ * Después llama a renderGames() para refrescar la UI.
+ */
 function applyFilters() {
   const q = document.getElementById('search').value.toLowerCase();
   filtered = games.filter(g => {
-    const matchQ = !q || g.title.toLowerCase().includes(q) || g.id.toLowerCase().includes(q);
-    return matchQ; // todos son WBFS desde wwt, el filtro fmt es informativo
+    // Filtrar por texto (título o ID)
+    return !q || g.title.toLowerCase().includes(q) || g.id.toLowerCase().includes(q);
   });
+  // Ordenar: strings con localeCompare, números con resta
   filtered.sort((a,b) => {
     const av = a[sortCol]??'', bv = b[sortCol]??'';
     return typeof av==='string' ? av.localeCompare(bv)*sortDir : (av-bv)*sortDir;
@@ -1129,6 +1441,11 @@ function applyFilters() {
   renderGames();
 }
 
+/**
+ * Cambia la columna de ordenación. Si ya es la activa, invierte la dirección.
+ *
+ * @param {string} col - Nombre de la propiedad por la que ordenar
+ */
 function sortBy(col) {
   sortDir = sortCol===col ? sortDir*-1 : 1;
   sortCol = col;
@@ -1136,8 +1453,15 @@ function sortBy(col) {
 }
 
 // ═══════════════════════════════════════════════
-//  VISTAS
+//  8. CAMBIO DE VISTA (GRID / LISTA)
 // ═══════════════════════════════════════════════
+
+/**
+ * Alterna entre la vista en cuadrícula y la vista en lista,
+ * actualizando el estado de los botones del toggle y las clases CSS.
+ *
+ * @param {string} v - 'grid' | 'list'
+ */
 function setView(v) {
   viewMode = v;
   document.getElementById('vt-grid').classList.toggle('active', v==='grid');
@@ -1147,24 +1471,47 @@ function setView(v) {
 }
 
 // ═══════════════════════════════════════════════
-//  CARÁTULAS con fallback región + tipo
+//  9. CARÁTULAS CON FALLBACK (GameTDB)
 // ═══════════════════════════════════════════════
 
-// Orden de fallback de regiones y tipos
+/**
+ * Orden de fallback de regiones para buscar carátulas en GameTDB.
+ * La región preferida del usuario se coloca al principio en tiempo
+ * de ejecución dentro de loadCovers().
+ */
 const COVER_REGIONS = ['ES','EN','FR','DE','IT','PT','AU','US','JA','KO'];
-const COVER_TYPES   = ['cover3D','cover','coverfull','disc'];
 
-// Caché en memoria: id → url que funcionó
+/**
+ * Orden de fallback de tipos de carátula.
+ * Si no existe 'cover3D' se prueba 'cover', luego 'coverfull', luego 'disc'.
+ */
+const COVER_TYPES = ['cover3D','cover','coverfull','disc'];
+
+/**
+ * Caché en memoria que mapea Game ID → URL de carátula encontrada.
+ * Evita repetir peticiones HTTP para juegos ya resueltos durante la sesión.
+ * @type {Object.<string, string>}
+ */
 const coverCache = {};
 
 /**
- * Intenta cargar una imagen probando combinaciones de región y tipo en orden.
- * Devuelve la primera URL que responde con imagen, o null si ninguna funciona.
+ * Intenta cargar la carátula de un juego probando combinaciones de
+ * región y tipo en orden, y devuelve la primera URL que carga una imagen.
+ *
+ * El orden de prueba es: primero se agotan todas las regiones para el
+ * tipo preferido, luego se baja al siguiente tipo, etc.:
+ *   cover3D/ES → cover3D/EN → … → cover/ES → cover/EN → …
+ *
+ * @param {string}   gameId  - Game ID del juego (ej. 'RMCP01')
+ * @param {string[]} regions - Lista de regiones en orden de preferencia
+ * @param {string[]} types   - Lista de tipos en orden de preferencia
+ * @returns {Promise<string|null>} URL de la primera imagen que cargó,
+ *                                o null si ninguna funcionó
  */
 function tryLoadCover(gameId, regions, types) {
   return new Promise(resolve => {
+    // Generar todas las combinaciones tipo × región en orden
     const combos = [];
-    // Primero todas las regiones con el tipo preferido, luego las demás
     for (const type of types)
       for (const region of regions)
         combos.push({ type, region });
@@ -1175,41 +1522,46 @@ function tryLoadCover(gameId, regions, types) {
       const { type, region } = combos[i++];
       const url = `https://art.gametdb.com/wii/${type}/${region}/${gameId}.png`;
       const img = new Image();
-      img.onload  = () => resolve(url);   // encontrada
-      img.onerror = next;                 // probar siguiente
+      img.onload  = () => resolve(url);  // imagen encontrada → devolver URL
+      img.onerror = next;                // no existe → probar siguiente combo
       img.src = url;
     }
     next();
   });
 }
 
+/**
+ * Carga las carátulas de todos los juegos visibles (filtrados) usando
+ * tryLoadCover() con fallback automático por región y tipo.
+ *
+ * Lanza hasta 6 peticiones en paralelo (workers) para no saturar
+ * el servidor de GameTDB ni bloquear el navegador.
+ * Las URLs encontradas se guardan en coverCache para reutilizarlas.
+ */
 async function loadCovers() {
   const prefRegion = document.getElementById('cover-region')?.value || settings.coverRegion;
   const prefType   = document.getElementById('cover-type')?.value   || settings.coverType;
 
-  // Construir lista de regiones con la preferida primera
+  // Poner la región y tipo preferidos al principio de las listas
   const regions = [prefRegion, ...COVER_REGIONS.filter(r => r !== prefRegion)];
-  // Construir lista de tipos con el preferido primero
   const types   = [prefType,   ...COVER_TYPES.filter(t => t !== prefType)];
 
   coversLoaded = 0;
   term(`<span class="cmd">Cargando carátulas con fallback automático (${prefType}/${prefRegion}→…)…</span>`);
 
-  // Lanzar todas en paralelo con un límite de concurrencia de 6
   const queue = [...filtered];
   let ok = 0, miss = 0;
 
+  // Worker: procesa juegos de la cola hasta que esté vacía
   async function worker() {
     while (queue.length) {
       const g = queue.shift();
-
-      // Si ya está cacheada, aplicar directamente
       if (coverCache[g.id]) {
+        // URL ya conocida: aplicar directamente sin petición de red
         applyCover(g.id, coverCache[g.id]);
         ok++;
         continue;
       }
-
       const url = await tryLoadCover(g.id, regions, types);
       if (url) {
         coverCache[g.id] = url;
@@ -1221,20 +1573,26 @@ async function loadCovers() {
     }
   }
 
-  // 6 workers en paralelo
+  // Lanzar 6 workers concurrentes
   await Promise.all(Array.from({length: 6}, worker));
-
   term(`<span class="ok">✓ Carátulas encontradas: ${ok} — Sin carátula: ${miss}</span>`);
 }
 
+/**
+ * Aplica una URL de carátula a los elementos <img> de un juego
+ * en la cuadrícula y en la lista, y oculta el placeholder.
+ *
+ * @param {string} gameId - Game ID del juego
+ * @param {string} url    - URL de la imagen a mostrar
+ */
 function applyCover(gameId, url) {
-  const img     = document.getElementById('cover-'  + gameId);
-  const nocover = document.getElementById('nocover-'+ gameId);
-  const limg    = document.getElementById('lcover-' + gameId);
+  const img     = document.getElementById('cover-'   + gameId);
+  const nocover = document.getElementById('nocover-' + gameId);
+  const limg    = document.getElementById('lcover-'  + gameId);
 
   if (img) {
-    img.src = url;
-    img.style.display = 'block';
+    img.src            = url;
+    img.style.display  = 'block';
     if (nocover) nocover.style.display = 'none';
     coversLoaded++;
     document.getElementById('stat-covers').textContent = coversLoaded;
@@ -1243,8 +1601,14 @@ function applyCover(gameId, url) {
 }
 
 // ═══════════════════════════════════════════════
-//  ESCANEAR DISPOSITIVO (REAL)
+//  10. ESCANEAR DISPOSITIVO
 // ═══════════════════════════════════════════════
+
+/**
+ * Explora la partición WBFS configurada llamando a GET /api/list.
+ * Si el campo de ruta está vacío, el servidor usará 'wwt --auto'.
+ * Actualiza `games`, `filtered`, estadísticas e indicador de conexión.
+ */
 async function scanDevice() {
   const path = document.getElementById('device-path').value.trim();
   // Si no hay ruta, el servidor usará --auto
@@ -1296,21 +1660,35 @@ async function scanDevice() {
   }
 }
 
+/** Alias de scanDevice() para el botón "↺" de la toolbar. */
 function refreshLibrary() { scanDevice(); }
 
 // ═══════════════════════════════════════════════
-//  AÑADIR JUEGO (REAL)
+//  11. AÑADIR JUEGO
 // ═══════════════════════════════════════════════
+
+/**
+ * Abre el modal de "Añadir juego" pre-rellenando el campo de
+ * destino con la partición configurada y actualizando la preview del comando.
+ */
 function openAddModal() {
   document.getElementById('add-dst').value = settings.wfsPath;
   updateAddPreview();
   openModal('modal-add');
 }
 
+/**
+ * Listener global que actualiza la preview del comando wwt ADD
+ * cada vez que el usuario modifica los campos de origen o destino del modal.
+ */
 document.addEventListener('input', e => {
   if (e.target.id==='add-src'||e.target.id==='add-dst') updateAddPreview();
 });
 
+/**
+ * Actualiza el bloque de preview del comando en el modal de añadir,
+ * mostrando el comando exacto que se ejecutará con las rutas actuales.
+ */
 function updateAddPreview() {
   const src = document.getElementById('add-src')?.value || '[src]';
   const dst = document.getElementById('add-dst')?.value || '[dst]';
@@ -1318,6 +1696,12 @@ function updateAddPreview() {
   if (el) el.textContent = `${settings.wwtPath} ADD -p "${dst}" "${src}"`;
 }
 
+/**
+ * Añade un juego a la partición WBFS llamando a POST /api/add.
+ * Muestra una barra de progreso animada mientras wwt copia el archivo
+ * (el proceso real puede tardar varios minutos para ISOs de 4-8 GB).
+ * Tras el éxito, cierra el modal y refresca la biblioteca.
+ */
 async function addGame() {
   const src  = document.getElementById('add-src').value.trim();
   const dst  = document.getElementById('add-dst').value.trim();
@@ -1328,8 +1712,8 @@ async function addGame() {
   document.querySelector('[onclick="addGame()"]').disabled = true;
 
   try {
-    // wwt ADD puede tardar varios minutos; el servidor tiene timeout=600s
-    // Mientras tanto mostramos una barra de progreso animada
+    // Progreso falso: wwt no emite progreso en tiempo real,
+    // así que avanzamos 1% cada 2s para dar feedback visual al usuario
     let fakePct = 2;
     const fakeIv = setInterval(() => {
       fakePct = Math.min(fakePct + 1, 92);
@@ -1359,8 +1743,14 @@ async function addGame() {
 }
 
 // ═══════════════════════════════════════════════
-//  ELIMINAR (REAL)
+//  12. ELIMINAR JUEGO(S)
 // ═══════════════════════════════════════════════
+
+/**
+ * Elimina todos los juegos actualmente seleccionados, pidiendo confirmación.
+ * Los elimina en serie (uno a uno) para evitar condiciones de carrera en wwt.
+ * Tras terminar, limpia la selección y refresca la biblioteca.
+ */
 async function deleteSelected() {
   if (!selected.size) return;
   const ids   = [...selected];
@@ -1387,6 +1777,12 @@ async function deleteSelected() {
   await scanDevice();
 }
 
+/**
+ * Elimina un juego individual por su Game ID.
+ * Se usa desde el botón ⌦ de las tarjetas y desde el modal de detalle.
+ *
+ * @param {string} id - Game ID del juego a eliminar (ej. 'RMCP01')
+ */
 async function deleteGame(id) {
   const g = games.find(x=>x.id===id);
   if (!confirm(`¿Eliminar "${g?.title || id}"?`)) return;
@@ -1409,9 +1805,22 @@ async function deleteGame(id) {
 }
 
 // ═══════════════════════════════════════════════
-//  DETALLE
+//  13. DETALLE DE JUEGO
 // ═══════════════════════════════════════════════
+
+/**
+ * ID del juego actualmente abierto en el modal de detalle.
+ * Se usa como referencia para las acciones "Exportar" y "Eliminar" del modal.
+ * @type {string|null}
+ */
 window._detailId = null;
+
+/**
+ * Abre el modal de detalle para un juego mostrando su información completa
+ * y cargando la carátula (desde caché si ya existe, o con tryLoadCover).
+ *
+ * @param {string} id - Game ID del juego a mostrar
+ */
 function showDetail(id) {
   const g = games.find(x=>x.id===id);
   if (!g) return;
@@ -1425,9 +1834,11 @@ function showDetail(id) {
   const cover = document.getElementById('detail-cover');
   cover.style.display = 'none';
   if (coverCache[g.id]) {
+    // Carátula ya en caché: mostrar inmediatamente
     cover.src = coverCache[g.id];
     cover.style.display = '';
   } else {
+    // Cargar con fallback asíncrono
     const regions = [settings.coverRegion, ...COVER_REGIONS.filter(r => r !== settings.coverRegion)];
     const types   = [settings.coverType,   ...COVER_TYPES.filter(t => t !== settings.coverType)];
     tryLoadCover(g.id, regions, types).then(url => {
@@ -1438,8 +1849,14 @@ function showDetail(id) {
 }
 
 // ═══════════════════════════════════════════════
-//  EXTRAER A ISO (REAL)
+//  14. EXTRAER A ISO
 // ═══════════════════════════════════════════════
+
+/**
+ * Extrae el juego abierto en el modal de detalle a un archivo ISO.
+ * Pide al usuario el directorio destino mediante un prompt y llama
+ * a POST /api/extract. El resultado aparece en el terminal principal.
+ */
 async function extractSelected() {
   const id = window._detailId;
   if (!id) return;
@@ -1463,8 +1880,14 @@ async function extractSelected() {
 }
 
 // ═══════════════════════════════════════════════
-//  CONVERSIÓN (REAL)
+//  15. CONVERSIÓN
 // ═══════════════════════════════════════════════
+
+/**
+ * Convierte un archivo ISO a formato WBFS añadiéndolo a la partición
+ * usando 'wwt ADD'. Se muestra en el terminal de la pestaña Convertir.
+ * El progreso es aproximado (no hay feedback real de wwt).
+ */
 async function convertIsoToWfs() {
   const src  = document.getElementById('src-iso').value.trim();
   const dst  = document.getElementById('dst-wfs').value.trim();
@@ -1495,6 +1918,11 @@ async function convertIsoToWfs() {
   }
 }
 
+/**
+ * Extrae un juego de la partición WBFS a un archivo ISO.
+ * Equivalente a convertIsoToWfs() pero en sentido contrario,
+ * usando 'wwt EXTRACT' en lugar de 'wwt ADD'.
+ */
 async function convertWfsToIso() {
   const id   = document.getElementById('src-wfs').value.trim();
   const dst  = document.getElementById('dst-iso').value.trim();
@@ -1525,6 +1953,10 @@ async function convertWfsToIso() {
   }
 }
 
+/**
+ * Ejecuta una conversión en lote: añade todos los ISOs de un directorio
+ * a la partición WBFS usando un glob *.iso. Llama a POST /api/run.
+ */
 async function runBatch() {
   const src = document.getElementById('batch-src').value.trim();
   const dst = document.getElementById('batch-dst').value.trim();
@@ -1543,8 +1975,13 @@ async function runBatch() {
 }
 
 // ═══════════════════════════════════════════════
-//  VERIFICACIÓN (REAL)
+//  16. VERIFICACIÓN DE INTEGRIDAD
 // ═══════════════════════════════════════════════
+
+/**
+ * Verifica la integridad de un archivo ISO o juego WBFS individual
+ * usando 'wit VERIFY'. Muestra el resultado en el terminal de verificación.
+ */
 async function verifyGame() {
   const src = document.getElementById('verify-path').value.trim();
   if (!src) { alert('Especifica un juego o ruta'); return; }
@@ -1554,13 +1991,17 @@ async function verifyGame() {
       src, wit: settings.witPath, wwt: settings.wwtPath
     });
     showResult(data, termVerify);
-    const ok = data.rc === 0;
-    showVerifyResult(src, ok, data.stdout+data.stderr);
+    showVerifyResult(src, data.rc === 0, data.stdout+data.stderr);
   } catch(e) {
     termVerify(`<span class="err">✗ ${esc(e.message)}</span>`);
   }
 }
 
+/**
+ * Verifica la integridad de todos los juegos de la partición WBFS
+ * usando 'wwt VERIFY'. Parsea la salida línea a línea para mostrar
+ * el estado de cada juego individualmente.
+ */
 async function verifyAll() {
   termVerify(`<span class="info">Verificando todos los juegos en ${settings.wfsPath}…</span>`);
   try {
@@ -1568,8 +2009,8 @@ async function verifyAll() {
       part: settings.wfsPath, wwt: settings.wwtPath
     });
     showResult(data, termVerify);
-    // Parsear líneas de resultado por juego
-    const res = document.getElementById('verify-results');
+    const res   = document.getElementById('verify-results');
+    // Extraer líneas que contienen un Game ID (4-6 caracteres mayúsculas/números)
     const lines = (data.stdout||'').split('\n').filter(l => /[A-Z0-9]{4,6}/.test(l));
     if (lines.length) {
       res.innerHTML = lines.map(l => {
@@ -1594,6 +2035,13 @@ async function verifyAll() {
   }
 }
 
+/**
+ * Muestra el resultado de una verificación individual en el panel de resultados.
+ *
+ * @param {string}  path   - Ruta o ID del juego verificado
+ * @param {boolean} ok     - true si la verificación fue exitosa
+ * @param {string}  detail - Salida combinada de stdout+stderr (no usada visualmente)
+ */
 function showVerifyResult(path, ok, detail) {
   document.getElementById('verify-results').innerHTML =
     `<div style="padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px">
@@ -1603,8 +2051,14 @@ function showVerifyResult(path, ok, detail) {
 }
 
 // ═══════════════════════════════════════════════
-//  VERIFICAR HERRAMIENTAS (REAL)
+//  17. COMPROBACIÓN DE HERRAMIENTAS
 // ═══════════════════════════════════════════════
+
+/**
+ * Consulta GET /api/status para detectar las rutas de wit y wwt en el sistema.
+ * Actualiza los badges de estado en el header y los campos de Ajustes.
+ * Si el servidor no responde, muestra los badges en rojo con "offline".
+ */
 async function checkTools() {
   const ws  = document.getElementById('wit-status');
   const wws = document.getElementById('wwt-status');
@@ -1613,12 +2067,12 @@ async function checkTools() {
     settings.witPath  = data.wit  || settings.witPath;
     settings.wwtPath  = data.wwt  || settings.wwtPath;
 
-    ws.className  = 'tag '+(data.wit_ok  ? 'tag-ok' : 'tag-err');
+    ws.className    = 'tag '+(data.wit_ok  ? 'tag-ok' : 'tag-err');
     ws.textContent  = data.wit_ok  ? `wit: ${data.wit}`  : 'wit: no encontrado';
-    wws.className = 'tag '+(data.wwt_ok ? 'tag-ok' : 'tag-err');
+    wws.className   = 'tag '+(data.wwt_ok ? 'tag-ok' : 'tag-err');
     wws.textContent = data.wwt_ok ? `wwt: ${data.wwt}` : 'wwt: no encontrado';
 
-    // Actualizar campos de ajustes con las rutas detectadas
+    // Actualizar campos de Ajustes con las rutas auto-detectadas
     const witEl = document.getElementById('wit-path');
     const wwtEl = document.getElementById('wwt-path');
     if (witEl && data.wit) witEl.value = data.wit;
@@ -1634,6 +2088,12 @@ async function checkTools() {
   }
 }
 
+/**
+ * Detecta la ruta de una herramienta concreta (wit o wwt) consultando
+ * /api/status y actualiza el campo correspondiente en la vista de Ajustes.
+ *
+ * @param {string} tool - 'wit' | 'wwt'
+ */
 async function detectTool(tool) {
   try {
     const data = await apiGet('/api/status');
@@ -1647,21 +2107,32 @@ async function detectTool(tool) {
 }
 
 // ═══════════════════════════════════════════════
-//  AJUSTES
+//  18. AJUSTES Y PERSISTENCIA
 // ═══════════════════════════════════════════════
+
+/**
+ * Lee los valores de los campos de la vista Ajustes, los guarda en el
+ * objeto `settings` y los persiste en localStorage para futuras sesiones.
+ * También sincroniza el campo de ruta del sidebar y reverifica las herramientas.
+ */
 function saveSettings() {
   settings.witPath     = document.getElementById('wit-path').value;
   settings.wwtPath     = document.getElementById('wwt-path').value;
   settings.wfsPath     = document.getElementById('wfs-path').value;
   settings.coverRegion = document.getElementById('cover-region').value;
   settings.coverType   = document.getElementById('cover-type').value;
-  // Sincronizar también el campo del sidebar
+  // Sincronizar el campo de ruta del sidebar con el valor guardado
   document.getElementById('device-path').value = settings.wfsPath;
   try { localStorage.setItem('wiimanager-settings', JSON.stringify(settings)); } catch(e){}
   alert('Configuración guardada');
   checkTools();
 }
 
+/**
+ * Carga la configuración guardada en localStorage y la aplica al objeto
+ * `settings` y a los campos del formulario de Ajustes.
+ * Se llama una vez al arrancar la aplicación.
+ */
 function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem('wiimanager-settings')||'{}');
@@ -1669,7 +2140,7 @@ function loadSettings() {
     if (s.witPath) document.getElementById('wit-path').value = s.witPath;
     if (s.wwtPath) document.getElementById('wwt-path').value = s.wwtPath;
     if (s.wfsPath) {
-      document.getElementById('wfs-path').value   = s.wfsPath;
+      document.getElementById('wfs-path').value    = s.wfsPath;
       document.getElementById('device-path').value = s.wfsPath;
     }
     if (s.coverRegion) document.getElementById('cover-region').value = s.coverRegion;
@@ -1677,8 +2148,20 @@ function loadSettings() {
   } catch(e) {}
 }
 
+// ═══════════════════════════════════════════════
+//  19. GENERACIÓN DE ARCHIVOS AUXILIARES
+// ═══════════════════════════════════════════════
+
+/**
+ * Genera y descarga un archivo .desktop para lanzar WiiFlow Manager
+ * directamente desde el entorno de escritorio de Linux (GNOME, KDE, XFCE…).
+ * El archivo arranca el servidor Python y abre el navegador automáticamente.
+ */
 function generateLauncher() {
-  const dir = prompt('Ruta completa donde guardaste los archivos:', '/home/'+( navigator.userAgent.match(/Linux/) ? 'usuario' : 'usuario')+'/wii-manager');
+  const dir = prompt(
+    'Ruta completa donde guardaste los archivos:',
+    '/home/usuario/wii-manager'
+  );
   if (!dir) return;
   const content = `[Desktop Entry]
 Version=1.0
@@ -1694,19 +2177,25 @@ StartupNotify=true
   download('wiimanager.desktop', content);
 }
 
+/**
+ * Genera y descarga un script bash con funciones de shell equivalentes
+ * a las operaciones de la GUI, para uso desde la línea de comandos.
+ * Las rutas se toman de la configuración actual.
+ */
 function generateScript() {
   const content = `#!/bin/bash
 # WiiFlow Manager — Script de bash
+# Generado por WiiFlow Manager GUI
 WWT="${settings.wwtPath}"
 WIT="${settings.witPath}"
 WFS="${settings.wfsPath}"
 
-list_games()   { $WWT LIST   -p "$WFS"; }
-add_game()     { $WWT ADD    -p "$WFS" "$1"; }
-remove_game()  { $WWT REMOVE -p "$WFS" "$1"; }
+list_games()   { $WWT LIST    -p "$WFS"; }
+add_game()     { $WWT ADD     -p "$WFS" "$1"; }
+remove_game()  { $WWT REMOVE  -p "$WFS" "$1"; }
 extract_game() { $WWT EXTRACT -p "$WFS" "$1" --dest "$2"; }
 verify_all()   { $WWT VERIFY  -p "$WFS"; }
-verify_game()  { $WIT VERIFY "$1"; }
+verify_game()  { $WIT VERIFY  "$1"; }
 
 case "$1" in
   list)    list_games ;;
@@ -1723,31 +2212,56 @@ esac
 }
 
 // ═══════════════════════════════════════════════
-//  HELPERS
+//  20. HELPERS DE UI
 // ═══════════════════════════════════════════════
+
+/**
+ * Añade una línea HTML al terminal principal de la biblioteca.
+ * Hace scroll automático al final para mantener visible la última línea.
+ * @param {string} html - HTML a insertar (puede contener spans con clases cmd/ok/err/info)
+ */
 function term(html) {
   const el = document.getElementById('term');
   if (!el) return;
   el.innerHTML += html + '\n';
   el.scrollTop = el.scrollHeight;
 }
+
+/**
+ * Añade una línea al terminal de la pestaña Convertir.
+ * @param {string} html - HTML a insertar
+ */
 function termConv(html) {
   const el = document.getElementById('term-conv');
   if (!el) return;
   el.innerHTML += html + '\n';
   el.scrollTop = el.scrollHeight;
 }
+
+/**
+ * Añade una línea al terminal de la pestaña Verificar.
+ * @param {string} html - HTML a insertar
+ */
 function termVerify(html) {
   const el = document.getElementById('term-verify');
   if (!el) return;
   el.innerHTML += html + '\n';
   el.scrollTop = el.scrollHeight;
 }
+
+/** Limpia el contenido del terminal principal. */
 function clearTerm() {
   const el = document.getElementById('term');
   if (el) el.innerHTML = '<span class="info">Terminal limpiada.</span>\n';
 }
 
+/**
+ * Actualiza la barra de progreso y el mensaje de estado de una operación.
+ *
+ * @param {string} prefix - Prefijo del ID del elemento ('add' | 'conv')
+ * @param {number} pct    - Porcentaje de progreso (0-100)
+ * @param {string} msg    - Mensaje de estado a mostrar
+ */
 function showProgress(prefix, pct, msg) {
   const panel  = document.getElementById(prefix+'-progress');
   const fill   = document.getElementById(prefix+'-fill');
@@ -1757,9 +2271,25 @@ function showProgress(prefix, pct, msg) {
   if (status) status.textContent  = msg;
 }
 
+/**
+ * Muestra un modal añadiéndole la clase 'open'.
+ * @param {string} id - ID del elemento modal-overlay
+ */
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
+
+/**
+ * Oculta un modal eliminándole la clase 'open'.
+ * @param {string} id - ID del elemento modal-overlay
+ */
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
+/**
+ * Muestra un prompt para introducir la ruta de un archivo.
+ * En Linux se puede usar `zenity --file-selection` en una terminal separada
+ * y pegar la ruta resultante, ya que el HTML no puede abrir diálogos de archivo nativos.
+ *
+ * @param {string} inputId - ID del campo de texto donde escribir la ruta
+ */
 function browseFile(inputId) {
   const el  = document.getElementById(inputId);
   const val = prompt(
@@ -1768,6 +2298,10 @@ function browseFile(inputId) {
   if (val !== null && el) { el.value = val; updateAddPreview(); }
 }
 
+/**
+ * Muestra un prompt para introducir la ruta de un directorio.
+ * @param {string} inputId - ID del campo de texto donde escribir la ruta
+ */
 function browseDir(inputId) {
   const el  = document.getElementById(inputId);
   const val = prompt(
@@ -1776,6 +2310,12 @@ function browseDir(inputId) {
   if (val !== null && el) el.value = val;
 }
 
+/**
+ * Muestra la lista de juegos cargados y permite elegir uno por ID
+ * para rellenar un campo de formulario. Usado en la vista de conversión.
+ *
+ * @param {string} inputId - ID del campo donde se escribe el Game ID elegido
+ */
 function pickFromLibrary(inputId) {
   const lista = games.map(g=>`${g.id}  ${g.title}`).join('\n');
   const val   = prompt(`Elige un juego (escribe el ID):\n\n${lista}`, '');
@@ -1786,6 +2326,12 @@ function pickFromLibrary(inputId) {
   }
 }
 
+/**
+ * Muestra en un alert el comando exacto que se ejecutará para
+ * la operación de conversión seleccionada, sin ejecutarlo.
+ *
+ * @param {string} type - 'iso2wfs' | 'wfs2iso'
+ */
 function previewCmd(type) {
   if (type==='iso2wfs') {
     const src  = document.getElementById('src-iso').value||'[src.iso]';
@@ -1800,9 +2346,15 @@ function previewCmd(type) {
   }
 }
 
+/**
+ * Descarga un archivo de texto en el navegador del usuario.
+ *
+ * @param {string} filename - Nombre del archivo a descargar
+ * @param {string} content  - Contenido del archivo en texto plano
+ */
 function download(filename, content) {
   const a    = document.createElement('a');
-  a.href     = 'data:text/plain;charset=utf-8,'+encodeURIComponent(content);
+  a.href     = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content);
   a.download = filename;
   a.click();
 }
