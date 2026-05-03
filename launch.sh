@@ -132,7 +132,7 @@ check_requirements() {
 # Arranca el servidor en segundo plano y guarda su PID
 start_server() {
     info "Arrancando servidor backend…"
-    "$PYTHON" "$SERVER_FILE" >> "$LOG_FILE" 2>&1 &
+    "$PYTHON" -u "$SERVER_FILE" >> "$LOG_FILE" 2>&1 &
     local pid=$!
     echo "$pid" > "$PID_FILE"
 

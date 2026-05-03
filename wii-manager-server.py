@@ -31,6 +31,10 @@ Seguridad:
 Licencia: GNU GPL v3
 """
 
+import sys
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+
 import http.server
 import json
 import re
