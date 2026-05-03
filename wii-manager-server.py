@@ -556,6 +556,46 @@ def api_run(params):
     return {'cmd': cmd, 'stdout': stdout, 'stderr': stderr, 'rc': rc}
 
 
+def api_browse(params):
+    """
+    GET /api/browse?type=file|dir&filter=iso
+
+    Abre un diálogo nativo de selección de archivo o directorio usando
+    zenity (disponible en Ubuntu/GNOME). Devuelve la ruta seleccionada.
+
+    Parámetros GET:
+        type   -- 'file' (default) | 'dir'
+        filter -- 'iso' para filtrar por archivos Wii (*.iso *.wbfs *.wdf)
+
+    Respuesta JSON:
+        { "path": "/ruta/seleccionada/juego.iso" }
+        { "path": "" }   # si el usuario canceló
+        { "error": "..." }  # si zenity no está disponible
+    """
+    kind   = params.get('type',   'file')
+    filt   = params.get('filter', '')
+
+    if not which('zenity'):
+        return {'error': 'zenity no está instalado. Instálalo con: sudo apt install zenity'}
+
+    if kind == 'dir':
+        cmd = 'zenity --file-selection --directory --title="Seleccionar directorio"'
+    else:
+        if filt == 'iso':
+            cmd = (
+                'zenity --file-selection '
+                '--title="Seleccionar imagen Wii" '
+                '--file-filter="Imágenes Wii (iso, wbfs, wdf)|*.iso *.ISO *.wbfs *.WBFS *.wdf *.WDF" '
+                '--file-filter="Todos los archivos|*"'
+            )
+        else:
+            cmd = 'zenity --file-selection --title="Seleccionar archivo"'
+
+    stdout, stderr, rc = run(cmd, timeout=120)
+    path = stdout.strip()
+    return {'path': path if rc == 0 else ''}
+
+
 # Tabla de enrutamiento: ruta URL → función handler
 ROUTES = {
     '/api/status':  api_status,
@@ -565,6 +605,7 @@ ROUTES = {
     '/api/extract': api_extract,
     '/api/verify':  api_verify,
     '/api/run':     api_run,
+    '/api/browse':  api_browse,
 }
 
 

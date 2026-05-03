@@ -858,7 +858,7 @@ Para instalar wit/wwt: https://wit.wiimm.de/download.html
           <label class="form-label">Archivo ISO origen</label>
           <div style="display:flex;gap:8px">
             <input class="form-input" id="src-iso" placeholder="/ruta/al/juego.iso">
-            <button class="btn" onclick="browseFile('src-iso')">Examinar</button>
+            <button class="btn" onclick="browseFile('src-iso','iso')">Examinar</button>
           </div>
         </div>
         <div class="form-group">
@@ -1068,20 +1068,26 @@ Para instalar wit/wwt: https://wit.wiimm.de/download.html
 <!-- ══ MODAL: AÑADIR JUEGO ══ -->
 <div class="modal-overlay" id="modal-add">
   <div class="modal">
-    <h2>Añadir juego al WFS</h2>
+    <h2>Añadir juego al WBFS</h2>
     <div class="form-group">
-      <label class="form-label">Archivo origen (ISO / WBFS / WFS)</label>
+      <label class="form-label">Archivo origen (ISO / WBFS / WDF)</label>
       <div style="display:flex;gap:8px">
-        <input class="form-input" id="add-src" placeholder="/ruta/al/juego.iso">
-        <button class="btn" onclick="browseFile('add-src')">…</button>
+        <input class="form-input" id="add-src" placeholder="/ruta/al/juego.iso" readonly
+               style="cursor:pointer" onclick="browseFile('add-src','iso')">
+        <button class="btn" id="btn-browse-iso" onclick="browseFile('add-src','iso')">
+          📂 Examinar
+        </button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:5px">
+        Pulsa "Examinar" para abrir el explorador de archivos nativo
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Destino WFS</label>
-      <input class="form-input" id="add-dst" placeholder="/media/usb/wii">
+      <label class="form-label">Destino WBFS</label>
+      <input class="form-input" id="add-dst" placeholder="/dev/sdb1">
     </div>
     <div style="background:var(--bg3);border-radius:8px;padding:10px;font-size:11px;color:var(--text3);font-family:monospace;margin-bottom:8px" id="add-preview">
-      wwt ADD --wfs [dst] [src]
+      wwt ADD -p [dst] [src]
     </div>
     <div id="add-progress" style="display:none">
       <div class="progress-bar"><div class="progress-fill" id="add-fill" style="width:0%"></div></div>
@@ -2369,30 +2375,51 @@ function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 /**
- * Muestra un prompt para introducir la ruta de un archivo.
- * En Linux se puede usar `zenity --file-selection` en una terminal separada
- * y pegar la ruta resultante, ya que el HTML no puede abrir diálogos de archivo nativos.
+ * Abre un diálogo nativo de selección de archivo usando zenity (vía servidor).
+ * Si zenity no está disponible, cae de vuelta a un prompt de texto.
  *
- * @param {string} inputId - ID del campo de texto donde escribir la ruta
+ * @param {string} inputId - ID del campo donde escribir la ruta seleccionada
+ * @param {string} filter  - 'iso' para filtrar imágenes Wii, '' para todos
  */
-function browseFile(inputId) {
-  const el  = document.getElementById(inputId);
-  const val = prompt(
-    'Introduce la ruta completa del archivo\n(también puedes usar: zenity --file-selection 2>/dev/null)',
-    el?.value || '');
-  if (val !== null && el) { el.value = val; updateAddPreview(); }
+async function browseFile(inputId, filter = '') {
+  const btn = document.getElementById('btn-browse-iso');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Abriendo…'; }
+  try {
+    const data = await apiGet('/api/browse', { type: 'file', filter });
+    if (data.error) {
+      // zenity no disponible: fallback a prompt
+      warn(`${data.error}`);
+      const val = prompt('Introduce la ruta del archivo:', '');
+      if (val) { document.getElementById(inputId).value = val; updateAddPreview(); }
+    } else if (data.path) {
+      document.getElementById(inputId).value = data.path;
+      updateAddPreview();
+    }
+  } catch(e) {
+    const val = prompt('Introduce la ruta del archivo:', '');
+    if (val) { document.getElementById(inputId).value = val; updateAddPreview(); }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📂 Examinar'; }
+  }
 }
 
 /**
- * Muestra un prompt para introducir la ruta de un directorio.
- * @param {string} inputId - ID del campo de texto donde escribir la ruta
+ * Abre un diálogo nativo de selección de directorio usando zenity (vía servidor).
+ * @param {string} inputId - ID del campo donde escribir la ruta seleccionada
  */
-function browseDir(inputId) {
-  const el  = document.getElementById(inputId);
-  const val = prompt(
-    'Introduce la ruta del directorio\n(también puedes usar: zenity --file-selection --directory 2>/dev/null)',
-    el?.value || '');
-  if (val !== null && el) el.value = val;
+async function browseDir(inputId) {
+  try {
+    const data = await apiGet('/api/browse', { type: 'dir' });
+    if (data.error) {
+      const val = prompt('Introduce la ruta del directorio:', '');
+      if (val) document.getElementById(inputId).value = val;
+    } else if (data.path) {
+      document.getElementById(inputId).value = data.path;
+    }
+  } catch(e) {
+    const val = prompt('Introduce la ruta del directorio:', '');
+    if (val) document.getElementById(inputId).value = val;
+  }
 }
 
 /**
