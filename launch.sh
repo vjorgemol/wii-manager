@@ -65,19 +65,61 @@ stop_server() {
     fi
 }
 
-# Abre la URL en el navegador predeterminado del sistema
+# Abre la URL en el navegador predeterminado del sistema.
+# En Ubuntu 24.04 Firefox es un snap y necesita tratamiento especial:
+# xdg-open falla en background porque el entorno D-Bus no está disponible
+# para procesos desconectados del terminal. La solución es usar
+# setsid + nohup para desanclar el proceso completamente.
 open_browser() {
     info "Abriendo $CLIENT_URL …"
-    if command -v xdg-open &>/dev/null; then
-        xdg-open "$CLIENT_URL" &>/dev/null &
+
+    # Función auxiliar: lanza un comando desanclado del terminal
+    _launch() {
+        setsid nohup "$@" >"$SCRIPT_DIR/.browser.log" 2>&1 &
+        disown
+    }
+
+    # 1. Firefox snap (Ubuntu 24.04) — ruta explícita del snap
+    if [[ -x /snap/bin/firefox ]]; then
+        _launch /snap/bin/firefox "$CLIENT_URL"
+        ok "Navegador abierto (Firefox snap)"
+
+    # 2. Firefox del sistema (no snap)
     elif command -v firefox &>/dev/null; then
-        firefox "$CLIENT_URL" &>/dev/null &
+        _launch firefox "$CLIENT_URL"
+        ok "Navegador abierto (Firefox)"
+
+    # 3. xdg-open como fallback genérico (con entorno DBUS explícito)
+    elif command -v xdg-open &>/dev/null; then
+        # Exportar DBUS_SESSION_BUS_ADDRESS si existe, para que xdg-open funcione
+        if [[ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
+            DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" \
+                setsid nohup xdg-open "$CLIENT_URL" >"$SCRIPT_DIR/.browser.log" 2>&1 &
+            disown
+            ok "Navegador abierto (xdg-open)"
+        else
+            # Sin D-Bus, intentar igualmente
+            _launch xdg-open "$CLIENT_URL"
+            ok "Navegador abierto (xdg-open sin D-Bus)"
+        fi
+
+    # 4. Chromium
     elif command -v chromium &>/dev/null; then
-        chromium "$CLIENT_URL" &>/dev/null &
+        _launch chromium "$CLIENT_URL"
+        ok "Navegador abierto (Chromium)"
+
+    elif command -v chromium-browser &>/dev/null; then
+        _launch chromium-browser "$CLIENT_URL"
+        ok "Navegador abierto (Chromium)"
+
+    # 5. Google Chrome
     elif command -v google-chrome &>/dev/null; then
-        google-chrome "$CLIENT_URL" &>/dev/null &
+        _launch google-chrome "$CLIENT_URL"
+        ok "Navegador abierto (Chrome)"
+
     else
-        warn "No se encontró navegador. Abre manualmente: $CLIENT_URL"
+        warn "No se encontró navegador compatible."
+        warn "Abre manualmente: ${BOLD}$CLIENT_URL${RESET}"
     fi
 }
 
